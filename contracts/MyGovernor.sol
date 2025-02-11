@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.22;
 
 import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
@@ -10,6 +10,7 @@ import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/Gover
 import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
+import {ProposalCounter} from "./ProposalCounter.sol";
 
 contract MyGovernor is
     Governor,
@@ -19,15 +20,15 @@ contract MyGovernor is
     GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
-    // Proposal Counts
-    uint256 public s_proposalCount;
+    ProposalCounter public proposalCounter;
 
     constructor(
         IVotes _token,
         TimelockController _timelock,
         uint48 _votingDelay,
         uint32 _votingPeriod,
-        uint256 _quorumPercentage
+        uint256 _quorumPercentage,
+        ProposalCounter _proposalCounter
     )
         Governor("MyGovernor")
         GovernorSettings(
@@ -39,7 +40,7 @@ contract MyGovernor is
         GovernorVotesQuorumFraction(_quorumPercentage)
         GovernorTimelockControl(_timelock)
     {
-        s_proposalCount = 0;
+        proposalCounter = _proposalCounter;
     }
 
     // The following functions are overrides required by Solidity.
@@ -96,7 +97,7 @@ contract MyGovernor is
         bytes[] memory calldatas,
         string memory description
     ) public override(Governor) returns (uint256) {
-        s_proposalCount++;
+        proposalCounter.incrementCount();
         return super.propose(targets, values, calldatas, description);
     }
 
@@ -161,6 +162,6 @@ contract MyGovernor is
     }
 
     function getNumberOfProposals() public view returns (uint256) {
-        return s_proposalCount;
+        return proposalCounter.getCount();
     }
 }
