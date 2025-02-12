@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -13,7 +13,7 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes {
     event TokenMinted(address indexed to, uint256 amount);
     event TokenBurned(address indexed from, uint256 amount);
 
-    uint256 constant TOKENS_PER_USER = 1000;
+    uint256 constant TOKENS_PER_USER = 10000;
     uint256 constant TOTAL_SUPPLY = 1000000e18;
 
     mapping(address => bool) public s_claimedTokens;

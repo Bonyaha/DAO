@@ -3,12 +3,12 @@ const {
   time,
 } = require("@nomicfoundation/hardhat-network-helpers")
 const { expect } = require("chai")
-const { ethers } = require("hardhat")
+const { ethers, network } = require("hardhat")
 const { toUtf8Bytes, keccak256, parseEther } = ethers
 
 describe("DAO", function () {
   async function deployDAOFixture() {
-    const [owner, addr1, addr2] = await ethers.getSigners()
+    const [owner, addr1, addr2, addr3, addr4, addr5] = await ethers.getSigners()
 
     // Deploy Governance Token
     const GovernanceToken = await ethers.getContractFactory("GovernanceToken")
@@ -37,7 +37,7 @@ describe("DAO", function () {
       timelock.target,
       1, // 1 block voting delay
       50, // 50 blocks voting period
-      5 // 5% quorum
+      4 // 5% quorum
     )
     await governor.waitForDeployment()
 
@@ -49,11 +49,18 @@ describe("DAO", function () {
     // Setup roles
     const proposerRole = await timelock.PROPOSER_ROLE()
     const executorRole = await timelock.EXECUTOR_ROLE()
-    const adminRole = await timelock.TIMELOCK_ADMIN_ROLE()
+    const adminRole = await timelock.DEFAULT_ADMIN_ROLE()
 
-    await timelock.grantRole(proposerRole, governor.target)
-    await timelock.grantRole(executorRole, ethers.ZeroAddress) // Anyone can execute
-    await timelock.revokeRole(adminRole, owner.address)
+    // Grant and revoke roles
+    const proposerTx = await timelock.grantRole(proposerRole, governor.target)
+    await proposerTx.wait()
+
+    const executorTx = await timelock.grantRole(executorRole, ethers.ZeroAddress) // Anyone can execute
+    await executorTx.wait()
+
+    const revokeTx = await timelock.revokeRole(adminRole, owner.address)
+    await revokeTx.wait()
+
 
     return {
       governanceToken,
@@ -63,6 +70,9 @@ describe("DAO", function () {
       owner,
       addr1,
       addr2,
+      addr3,
+      addr4,
+      addr5
     }
   }
 
@@ -82,7 +92,7 @@ describe("DAO", function () {
 
     it("Should allow users to claim tokens", async function () {
       const { governanceToken, addr1 } = await loadFixture(deployDAOFixture)
-      const claimAmount = parseEther("1000") // TOKENS_PER_USER = 1000
+      const claimAmount = parseEther("10000") // TOKENS_PER_USER = 1000
 
       await governanceToken.connect(addr1).claimTokens()
       expect(await governanceToken.balanceOf(addr1.address)).to.equal(claimAmount)
@@ -145,15 +155,41 @@ describe("DAO", function () {
     })
 
     it("Should go through entire governance cycle", async function () {
-      const { governor, box, governanceToken, addr1, addr2 } = await loadFixture(
+      const { governor, box, governanceToken, addr1, addr2, addr3, addr4,addr5 } = await loadFixture(
         deployDAOFixture
       )
 
       // Setup voting power
       await governanceToken.connect(addr1).claimTokens()
       await governanceToken.connect(addr2).claimTokens()
+      await governanceToken.connect(addr3).claimTokens()
+      await governanceToken.connect(addr4).claimTokens()
+      await governanceToken.connect(addr5).claimTokens()
+
+      // Delegate votes and wait for a block to ensure checkpoint is created
       await governanceToken.connect(addr1).delegate(addr1.address)
+      await network.provider.send("evm_mine")
       await governanceToken.connect(addr2).delegate(addr2.address)
+      await network.provider.send("evm_mine")
+      await governanceToken.connect(addr3).delegate(addr3.address)
+      await network.provider.send("evm_mine")
+      await governanceToken.connect(addr4).delegate(addr4.address)
+      await network.provider.send("evm_mine")
+      await governanceToken.connect(addr5).delegate(addr5.address)
+      await network.provider.send("evm_mine")
+
+      // Log current block number
+      const startBlock = await ethers.provider.getBlockNumber()
+      console.log("Start block:", startBlock)
+
+      console.log("Voting power addr1:", await governanceToken.getVotes(addr1.address))
+      console.log("Voting power addr2:", await governanceToken.getVotes(addr2.address))
+      console.log("Voting power addr3:", await governanceToken.getVotes(addr3.address))
+      console.log("Voting power addr4:", await governanceToken.getVotes(addr4.address))
+      console.log("Voting power addr5:", await governanceToken.getVotes(addr5.address))
+
+
+      console.log("Total supply:", await governanceToken.totalSupply())
 
       // Create proposal
       const encodedFunctionCall = box.interface.encodeFunctionData("store", [42])
@@ -161,49 +197,64 @@ describe("DAO", function () {
 
       const proposeTx = await governor
         .connect(addr1)
-        .propose(
-          [box.target],
-          [0],
-          [encodedFunctionCall],
-          proposalDescription
-        )
+        .propose([box.target], [0], [encodedFunctionCall], proposalDescription)
 
+      await network.provider.send("evm_mine")
       const proposeReceipt = await proposeTx.wait(1)
       const proposalId = proposeReceipt.logs[0].args[0]
 
+      // Get proposal details
+      const proposalSnapshot = await governor.proposalSnapshot(proposalId)
+      const proposalDeadline = await governor.proposalDeadline(proposalId)
+      console.log("Proposal snapshot block:", proposalSnapshot)
+      console.log("Proposal deadline block:", proposalDeadline)
+      console.log("Current block:", await ethers.provider.getBlockNumber())
+
       // Wait for voting delay
-      await time.increase(2)
+      for (let i = 0; i < 2; i++) {
+        await network.provider.send("evm_mine")
+      }
 
-      // Vote
-      await governor.connect(addr1).castVote(proposalId, 1) // Vote in favor
+      console.log("Block before voting:", await ethers.provider.getBlockNumber())
+
+      // Cast votes
+      await governor.connect(addr1).castVote(proposalId, 1)
       await governor.connect(addr2).castVote(proposalId, 1)
+      await governor.connect(addr3).castVote(proposalId, 1)
+      await governor.connect(addr4).castVote(proposalId, 1)
+      await governor.connect(addr5).castVote(proposalId, 1)
 
-      // Wait for voting period to end
-      await time.increase(51)
+
+
+
+      // Check votes
+      const { againstVotes, forVotes, abstainVotes } = await governor.proposalVotes(proposalId)
+      console.log("Votes - For:", forVotes, "Against:", againstVotes, "Abstain:", abstainVotes)
+
+      // Mine enough blocks to reach the deadline
+      const currentBlock = await ethers.provider.getBlockNumber()
+      const blocksToMine = Number(proposalDeadline) - currentBlock + 1
+      console.log("Mining", blocksToMine, "blocks")
+
+      for (let i = 0; i < blocksToMine; i++) {
+        await network.provider.send("evm_mine")
+      }
+
+      console.log("Current block after mining:", await ethers.provider.getBlockNumber())
+      console.log("State after voting period:", await governor.state(proposalId))
 
       // Queue
-      const descriptionHash = keccak256(
-        toUtf8Bytes(proposalDescription)
-      )
-      await governor.queue(
-        [box.target],
-        [0],
-        [encodedFunctionCall],
-        descriptionHash
-      )
+      const descriptionHash = keccak256(toUtf8Bytes(proposalDescription))
+      await governor.queue([box.target], [0], [encodedFunctionCall], descriptionHash)
 
       // Wait for timelock
       await time.increase(3601)
+      await network.provider.send("evm_mine")
 
       // Execute
-      await governor.execute(
-        [box.target],
-        [0],
-        [encodedFunctionCall],
-        descriptionHash
-      )
+      await governor.execute([box.target], [0], [encodedFunctionCall], descriptionHash)
 
-      // Verify the change
+      // Verify
       expect(await box.retrieve()).to.equal(42)
     })
   })
