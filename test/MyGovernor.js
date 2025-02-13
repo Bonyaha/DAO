@@ -37,7 +37,7 @@ describe("DAO", function () {
       timelock.target,
       1, // 1 block voting delay
       50, // 50 blocks voting period
-      4 // 5% quorum
+      5 // 5% quorum
     )
     await governor.waitForDeployment()
 
@@ -155,39 +155,27 @@ describe("DAO", function () {
     })
 
     it("Should go through entire governance cycle", async function () {
-      const { governor, box, governanceToken, addr1, addr2, addr3, addr4,addr5 } = await loadFixture(
+      const { governor, box, governanceToken, addr1, addr2, addr3, addr4, addr5 } = await loadFixture(
         deployDAOFixture
       )
+      const voters = [addr1, addr2, addr3, addr4, addr5]
 
       // Setup voting power
-      await governanceToken.connect(addr1).claimTokens()
-      await governanceToken.connect(addr2).claimTokens()
-      await governanceToken.connect(addr3).claimTokens()
-      await governanceToken.connect(addr4).claimTokens()
-      await governanceToken.connect(addr5).claimTokens()
-
+      for (const voter of voters) {
+        await governanceToken.connect(voter).claimTokens()        
+      }
+      
       // Delegate votes and wait for a block to ensure checkpoint is created
-      await governanceToken.connect(addr1).delegate(addr1.address)
-      await network.provider.send("evm_mine")
-      await governanceToken.connect(addr2).delegate(addr2.address)
-      await network.provider.send("evm_mine")
-      await governanceToken.connect(addr3).delegate(addr3.address)
-      await network.provider.send("evm_mine")
-      await governanceToken.connect(addr4).delegate(addr4.address)
-      await network.provider.send("evm_mine")
-      await governanceToken.connect(addr5).delegate(addr5.address)
-      await network.provider.send("evm_mine")
+
+      for (const voter of voters) {
+        await governanceToken.connect(voter).delegate(voter.address)
+        await network.provider.send("evm_mine")
+      }
+
 
       // Log current block number
       const startBlock = await ethers.provider.getBlockNumber()
       console.log("Start block:", startBlock)
-
-      console.log("Voting power addr1:", await governanceToken.getVotes(addr1.address))
-      console.log("Voting power addr2:", await governanceToken.getVotes(addr2.address))
-      console.log("Voting power addr3:", await governanceToken.getVotes(addr3.address))
-      console.log("Voting power addr4:", await governanceToken.getVotes(addr4.address))
-      console.log("Voting power addr5:", await governanceToken.getVotes(addr5.address))
-
 
       console.log("Total supply:", await governanceToken.totalSupply())
 
@@ -218,14 +206,9 @@ describe("DAO", function () {
       console.log("Block before voting:", await ethers.provider.getBlockNumber())
 
       // Cast votes
-      await governor.connect(addr1).castVote(proposalId, 1)
-      await governor.connect(addr2).castVote(proposalId, 1)
-      await governor.connect(addr3).castVote(proposalId, 1)
-      await governor.connect(addr4).castVote(proposalId, 1)
-      await governor.connect(addr5).castVote(proposalId, 1)
-
-
-
+      for (const voter of voters) {
+        await governor.connect(voter).castVote(proposalId, 1)
+      }
 
       // Check votes
       const { againstVotes, forVotes, abstainVotes } = await governor.proposalVotes(proposalId)
