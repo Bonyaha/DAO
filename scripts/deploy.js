@@ -13,7 +13,7 @@ async function main() {
 
 	// Deploy Timelock
 	console.log("Deploying TimelockController...")
-	const minDelay = 3600 // 1 hour
+	const minDelay = 3600 // 1 hour, this is the minimum time that must pass between when a proposal is queued and when it can be executed
 	const proposers = []
 	const executors = []
 	const admin = deployer.address
