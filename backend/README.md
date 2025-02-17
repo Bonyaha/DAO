@@ -26,3 +26,9 @@ Proposal Details:
 - Description: Proposal #1: Store 42 in Box
 - Description Hash: 0xb437b77b40f312f3734d7fb3f2f60108ee681fa9196ab63f97c9f18a7bc00fc7
 - Proposal created with ID: 91044704526164102498762266073326982244134999302812703044111245618749040760528
+
+### Commands for verifying
+`npx hardhat verify --network sepolia <TOKEN_ADDRESS> <_keepPercentage>` - GovernanceToken
+`npx hardhat verify --network sepolia --constructor-args arguments.js 0xBFB3fbFe94fe417c62926Aa9dA56FF159af23e8d` - TimelockController
+`npx hardhat verify --network sepolia <GOVERNOR_ADDRESS> <TOKEN_ADDRESS> <TIMELOCK_ADDRESS> <VOTING_DELAY> <VOTING_PERIOD> <QUORUM_PERCENTAGE>` - Governor
+`npx hardhat verify --network sepolia <BOX_ADDRESS> <TIMELOCK_ADDRESS>` - Box
