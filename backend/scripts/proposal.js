@@ -1,11 +1,35 @@
-const { ethers } = require("hardhat")
+const { ethers, network } = require("hardhat")
 const { toUtf8Bytes, keccak256 } = ethers
 
-const GOVERNOR_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-const BOX_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-const GOVERNANCE_TOKEN_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-
 async function main() {
+	// Get network information
+	const networkName = network.name
+	console.log(`Running on network: ${networkName}`)
+
+	// Determine if we're running on a local network
+	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
+
+	// Get contract addresses - either from command line args or predefined values
+	let GOVERNOR_ADDRESS, BOX_ADDRESS, GOVERNANCE_TOKEN_ADDRESS
+
+	if (process.argv.length >= 5 && !isLocalNetwork) {
+		// Get addresses from command line args when on non-local networks
+		[, , GOVERNOR_ADDRESS, BOX_ADDRESS, GOVERNANCE_TOKEN_ADDRESS] = process.argv
+		console.log("Using provided contract addresses")
+	} else {
+		// Default addresses for local development
+		GOVERNOR_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+		BOX_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
+		GOVERNANCE_TOKEN_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+		console.log("Using default local contract addresses")
+	}
+
+	console.log({
+		GOVERNOR_ADDRESS,
+		BOX_ADDRESS,
+		GOVERNANCE_TOKEN_ADDRESS
+	})
+
 	const [proposer] = await ethers.getSigners()
 	console.log("Creating proposal with account:", proposer.address)
 
@@ -28,9 +52,15 @@ async function main() {
 		console.log("Delegating tokens...")
 		const delegateTx = await governanceToken.delegate(proposer.address)
 		await delegateTx.wait()
-		// Wait for one block to ensure checkpoint is created
-		/* await ethers.provider.waitForBlock(await ethers.provider.getBlockNumber() + 1) */
-		await network.provider.send("evm_mine") // for hardhat network
+
+		// Wait for one block - use appropriate method based on network
+		if (isLocalNetwork) {
+			console.log("Mining block on local network...")
+			await network.provider.send("evm_mine")
+		} else {
+			console.log("Waiting for next block on test/main network...")
+			await ethers.provider.waitForBlock(await ethers.provider.getBlockNumber() + 1)
+		}
 	}
 
 	// Get the total number of proposals
