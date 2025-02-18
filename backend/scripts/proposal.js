@@ -29,8 +29,13 @@ async function main() {
 		const delegateTx = await governanceToken.delegate(proposer.address)
 		await delegateTx.wait()
 		// Wait for one block to ensure checkpoint is created
-		await ethers.provider.waitForBlock(await ethers.provider.getBlockNumber() + 1)
+		/* await ethers.provider.waitForBlock(await ethers.provider.getBlockNumber() + 1) */
+		await network.provider.send("evm_mine") // for hardhat network
 	}
+
+	// Get the total number of proposals
+	const proposalCount = await governor.getNumberOfProposals()
+	console.log(`Total number of proposals: ${proposalCount}`)
 
 	// Create proposal
 	console.log("Creating proposal...")
