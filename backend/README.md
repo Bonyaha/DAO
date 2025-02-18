@@ -29,6 +29,5 @@ Deployed Contracts in local network:
 npx hardhat run scripts/<name_of_file> --network sepolia
 
 /*(for running locally)*/
-
-npx hardhat node (in separate window)
-npx hardhat run scripts/<name_of_file> --network localhost
+- npx hardhat node (in separate window)
+- npx hardhat run scripts/<name_of_file> --network localhost
