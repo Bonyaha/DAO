@@ -10,7 +10,7 @@ Deployed Contracts:
 - Governor: 0xA64fFB0e4CF1F49ea2dbCE4C871FF8d39481D9FC
 - Box: 0x62525AF0351783c15fe79334dB33A4d0E32eDB4d
 
-### Deployed Contracts in local network:
+Deployed Contracts in local network:
 - GovernanceToken: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 - TimelockController: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 - Governor: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
@@ -29,5 +29,6 @@ Deployed Contracts:
 npx hardhat run scripts/<name_of_file> --network sepolia
 
 /*(for running locally)*/
+
 npx hardhat node (in separate window)
 npx hardhat run scripts/<name_of_file> --network localhost
