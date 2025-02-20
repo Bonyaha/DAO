@@ -51,11 +51,12 @@ async function main() {
 					}
 				}
 			} else {
-				console.log(`Waiting for block ${votingStarts} on ${networkName}...`)
-				await ethers.provider.waitForBlock(Number(votingStarts + 1n))
+				console.log(`Voting delay not yet complete on ${networkName}.`)
+				console.log(`Please rerun this script after block ${votingStarts} is reached.`)
+				console.log(`Estimated wait time: ~${blocksToWait * 15} seconds (assuming 15s/block on Sepolia)`)
+				process.exit(0);
 			}
-
-			console.log("Voting delay period completed.")
+			
 			// Re-check the proposal state
 			state = await governor.state(proposalId)
 			console.log(`New proposal state: ${states[state]}`)

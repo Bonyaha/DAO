@@ -2,7 +2,6 @@ const { ethers } = require("hardhat")
 const addresses = require("../addresses")
 
 
-const PROPOSAL_ID = '5230289835011103672823903198228406806565753183275807746014809080855812650699'
 
 async function main() {
 	const networkName = network.name
@@ -12,6 +11,7 @@ async function main() {
 	//console.log(config)
 	const GOVERNOR_ADDRESS = config.governor.address
 	const GOVERNANCE_TOKEN_ADDRESS = config.governanceToken.address
+	const PROPOSAL_ID = config.proposalId.id
 
 	const [proposer] = await ethers.getSigners()	
 

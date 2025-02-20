@@ -21,7 +21,7 @@ async function main() {
 	const proposalId = PROPOSAL_ID
 	const boxAddress = BOX_ADDRESS
 	const value = process.env.PROPOSAL_VALUE || 42
-	const description = `Proposal #1: Store 42 in Box`
+	const description = `Proposal #3: Store 42 in Box`
 
 	if (!proposalId || !boxAddress) {
 		throw new Error("Please set PROPOSAL_ID and BOX_ADDRESS environment variables")
@@ -74,7 +74,7 @@ async function main() {
 	if (updatedState == 5) { // 5 = Queued
 		try {
 			// Get the earliest execution time
-			const proposalEta = await governor.proposalEta(proposalId)
+			const proposalEta = await governor.proposalEta(proposalId) //timestamp when the proposal can be executed
 			const latestBlock = await ethers.provider.getBlock('latest')
 			const currentTimestamp = BigInt(latestBlock.timestamp)
 
@@ -91,7 +91,15 @@ async function main() {
 					await network.provider.send("evm_mine")
 					console.log(`Time fast-forwarded`)
 				} else {
-					console.log(`That's approximately ${Math.ceil(waitTime / 60)} minutes or ${Math.ceil(waitTime / 3600)} hours.`)
+					const minutes = Math.ceil(waitTime / 60)  // Total minutes, rounded up
+					const hours = Math.floor(waitTime / 3600) // Full hours
+					const remainingMinutes = Math.ceil((waitTime % 3600) / 60) // Minutes after full hours
+
+					if (hours >= 1) {
+						console.log(`That's approximately ${hours} hours and ${remainingMinutes} minutes.`)
+					} else {
+						console.log(`That's approximately ${minutes} minutes.`)
+					}
 					console.log(`Please run this script again at or after: ${new Date(Number(proposalEta) * 1000).toLocaleString()}`)
 					return
 				}
@@ -176,8 +184,16 @@ async function main() {
 				console.log(`New value in Box: ${newValue}`)
 			}
 			else {
-				console.log("Note: You'll need to wait for the timelock period before executing.")
-				console.log("Run this script again to check when execution is possible.")
+				// Calculate remaining time for non-local networks
+				const proposalEta = await governor.proposalEta(proposalId)
+				const latestBlock = await ethers.provider.getBlock("latest")
+				const currentTimestamp = BigInt(latestBlock.timestamp)
+				const remainingSeconds = Number(proposalEta - currentTimestamp)
+				const minutes = Math.floor(remainingSeconds / 60)
+				const seconds = remainingSeconds % 60
+
+				console.log(`Note: You'll need to wait approximately ${minutes} minutes and ${seconds} seconds for the timelock period before executing.`)
+				console.log("Run this script again to check when execution is possible.");
 			}
 
 
@@ -190,7 +206,11 @@ async function main() {
 		console.log(`Waiting for block ${deadline} to be reached (current: ${currentBlock}).`)
 
 		if (!isLocalNetwork) {
-			console.log(`Estimated time remaining: ${(Number(deadline) - currentBlock) * 12} seconds`)
+			const remainingSeconds = (Number(deadline) - currentBlock) * 12
+			const minutes = Math.floor(remainingSeconds / 60)
+			const seconds = remainingSeconds % 60
+			console.log(`Estimated time remaining: ${minutes} minutes and ${seconds} seconds`)
+			//console.log(`Estimated time remaining: ${(Number(deadline) - currentBlock) * 12} seconds`)
 			console.log(`Please run this script again after block ${deadline} is reached.`)
 		}
 	}
