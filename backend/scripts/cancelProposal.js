@@ -10,19 +10,20 @@ async function main() {
 	const BOX_ADDRESS = config.box.address
 	const PROPOSAL_ID = config.proposalId.id
 
-	
-	const value = process.env.PROPOSAL_VALUE || 42
-	const description = `Proposal #3: Store 42 in Box`
-
-	console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
-	console.log(`Using box address: ${BOX_ADDRESS}`)
-
 	if (!PROPOSAL_ID || !BOX_ADDRESS) {
 		throw new Error("Please set PROPOSAL_ID and BOX_ADDRESS environment variables")
 	}
 
 	const governor = await ethers.getContractAt("MyGovernor", GOVERNOR_ADDRESS)
 	const box = await ethers.getContractAt("Box", BOX_ADDRESS)
+
+	console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
+	console.log(`Using box address: ${BOX_ADDRESS}`)
+
+	const value = process.env.PROPOSAL_VALUE || 42
+	console.log(`Number of proposals: ${await governor.getNumberOfProposals()}`)
+	const description = `Proposal #${await governor.getNumberOfProposals()}: Store ${value} in Box`
+	console.log(`Proposal description: ${description}`)
 
 	// Get blocks info
 	const currentBlock = await ethers.provider.getBlockNumber()
@@ -32,7 +33,7 @@ async function main() {
 	console.log("\nBlock Information:")
 	console.log(`Current block: ${currentBlock}`)
 	console.log(`Snapshot block: ${snapshot}`)
-	console.log(`Deadline block: ${deadline}`);
+	console.log(`Deadline block: ${deadline}`)
 
 	// Get current signer
 	const [signer] = await ethers.getSigners()
@@ -93,11 +94,17 @@ async function main() {
 			console.error("Only the original proposer can cancel this proposal.")
 		} else if (error.message.includes("Governor: proposal not active")) {
 			console.error("The proposal is not in a state that can be cancelled.")
-		} else if (error.data) {
-			const decodedError = governor.interface.parseError(error.data)
-			console.error(`Revert reason: ${decodedError.name} - ${decodedError.args}`)
 		} else {
-			console.error("Unexpected error:", error.message)
+			console.error("Raw error:", error.message)
+
+			if (error.data) {
+				try {
+					const decodedError = governor.interface.parseError(error.data)
+					console.error(`Contract error: ${decodedError.name}`)
+				} catch (parseError) {
+					console.error("Failed to parse contract error")
+				}
+			}
 		}
 	}
 }

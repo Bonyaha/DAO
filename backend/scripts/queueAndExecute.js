@@ -3,7 +3,7 @@ const { keccak256, toUtf8Bytes } = ethers
 const addresses = require("../addresses")
 
 async function main() {
-// Get network information
+	// Get network information
 	const networkName = network.name
 	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
 	console.log(`Running on network: ${networkName}`)
@@ -16,12 +16,12 @@ async function main() {
 
 	//console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)	
 
-	
+
 	const governor = await ethers.getContractAt("MyGovernor", GOVERNOR_ADDRESS)
 	const proposalId = PROPOSAL_ID
 	const boxAddress = BOX_ADDRESS
 	const value = process.env.PROPOSAL_VALUE || 42
-	const description = `Proposal #3: Store 42 in Box`
+	const description = `Proposal #${await governor.getNumberOfProposals()}: Store ${value} in Box`
 
 	if (!proposalId || !boxAddress) {
 		throw new Error("Please set PROPOSAL_ID and BOX_ADDRESS environment variables")
@@ -103,7 +103,6 @@ async function main() {
 					console.log(`Please run this script again at or after: ${new Date(Number(proposalEta) * 1000).toLocaleString()}`)
 					return
 				}
-
 			}
 
 			// If we're past the timelock period, execute
@@ -193,7 +192,7 @@ async function main() {
 				const seconds = remainingSeconds % 60
 
 				console.log(`Note: You'll need to wait approximately ${minutes} minutes and ${seconds} seconds for the timelock period before executing.`)
-				console.log("Run this script again to check when execution is possible.");
+				console.log("Run this script again to check when execution is possible.")
 			}
 
 
