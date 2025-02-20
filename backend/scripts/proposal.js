@@ -1,35 +1,26 @@
 const { ethers, network } = require("hardhat")
 const { toUtf8Bytes, keccak256 } = ethers
+const addresses = require("../addresses")
 
 async function main() {
 	// Get network information
 	const networkName = network.name
 	console.log(`Running on network: ${networkName}`)
 
+	const config = addresses[network.name]
+	//console.log(config)
+	const GOVERNOR_ADDRESS = config.governor.address
+	const BOX_ADDRESS = config.box.address
+	const GOVERNANCE_TOKEN_ADDRESS = config.governanceToken.address
+
+	console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
+	console.log(`Using box address: ${BOX_ADDRESS}`)
+	console.log(`Using governance token address: ${GOVERNANCE_TOKEN_ADDRESS}`)
+
 	// Determine if we're running on a local network
 	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
 
-	// Get contract addresses - either from command line args or predefined values
-	let GOVERNOR_ADDRESS, BOX_ADDRESS, GOVERNANCE_TOKEN_ADDRESS
-
-	if (process.argv.length >= 5 && !isLocalNetwork) {
-		// Get addresses from command line args when on non-local networks
-		[, , GOVERNOR_ADDRESS, BOX_ADDRESS, GOVERNANCE_TOKEN_ADDRESS] = process.argv
-		console.log("Using provided contract addresses")
-	} else {
-		// Default addresses for local development
-		GOVERNOR_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-		BOX_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-		GOVERNANCE_TOKEN_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-		console.log("Using default local contract addresses")
-	}
-
-	console.log({
-		GOVERNOR_ADDRESS,
-		BOX_ADDRESS,
-		GOVERNANCE_TOKEN_ADDRESS
-	})
-
+	
 	const [proposer] = await ethers.getSigners()
 	console.log("Creating proposal with account:", proposer.address)
 

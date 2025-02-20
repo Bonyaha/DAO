@@ -1,10 +1,20 @@
 const { ethers } = require("hardhat")
-
-const GOVERNOR_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
-const PROPOSAL_ID = "5230289835011103672823903198228406806565753183275807746014809080855812650699"
-
+const addresses = require("../addresses")
 
 async function main() {
+// Get network information
+	const networkName = network.name
+	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
+	console.log(`Running on network: ${networkName}`)
+
+	const config = addresses[network.name]
+	//console.log(config)
+	const GOVERNOR_ADDRESS = config.governor.address	
+	const PROPOSAL_ID = config.proposalId.id
+
+	//console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
+	
+
 	const proposalId = PROPOSAL_ID
 	if (!proposalId) {
 		throw new Error("Please set PROPOSAL_ID environment variable")
@@ -19,18 +29,38 @@ async function main() {
 	const states = ['Pending', 'Active', 'Canceled', 'Defeated', 'Succeeded', 'Queued', 'Expired', 'Executed']
 	console.log(`Current proposal state: ${states[state]}`);
 
-	// If it's still Pending, mine an extra block to advance to Active
+		
+
+	// If it's still Pending, handle voting delay based on network
 	if (state == 0) { // 0 = Pending
-		console.log("Proposal is still pending. Mining a block...")
-		//await ethers.provider.send("evm_mine", [])
-		await network.provider.send("evm_mine") // for hardhat network
-		console.log("Block mined.")
+		const currentBlock = BigInt(await ethers.provider.getBlockNumber())
+		const votingStarts = await governor.proposalSnapshot(proposalId)
+		console.log(`Current block: ${currentBlock}`)
+		console.log(`Voting starts at block: ${votingStarts}`)
 
-		// Re-check the proposal state
-		state = await governor.state(proposalId)
-		console.log(`New proposal state: ${states[state]}`)
+		if (currentBlock <= votingStarts) {
+			const blocksToWait = Number(votingStarts - currentBlock + 1n)
+			console.log(`Need to wait for ${blocksToWait} blocks`)
+
+			if (isLocalNetwork) {
+				console.log("Mining blocks on local network...")
+				for (let i = 0; i < blocksToWait; i++) {
+					await network.provider.send("evm_mine")
+					if (i % 5 === 0) { // Log progress every 5 blocks
+						console.log(`Mined block ${i + 1} of ${blocksToWait}`)
+					}
+				}
+			} else {
+				console.log(`Waiting for block ${votingStarts} on ${networkName}...`)
+				await ethers.provider.waitForBlock(Number(votingStarts + 1n))
+			}
+
+			console.log("Voting delay period completed.")
+			// Re-check the proposal state
+			state = await governor.state(proposalId)
+			console.log(`New proposal state: ${states[state]}`)
+		}
 	}
-
 
 
 	if (state != 1) { // 1 = Active

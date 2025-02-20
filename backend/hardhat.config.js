@@ -30,7 +30,7 @@ module.exports = {
     apiKey: process.env.ETHERSCAN_KEY
   },
   contractSizer: {
-    runOnCompile: true,  // Runs automatically when compiling
+    runOnCompile: false,  // Runs automatically when compiling
     only: ["MyGovernor"], // Specify contracts to measure (optional)
   }
 };
