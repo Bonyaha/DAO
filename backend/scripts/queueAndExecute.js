@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat")
 const { keccak256, toUtf8Bytes } = ethers
-const addresses = require("../addresses")
+const {addresses} = require("../addresses")
 
 async function main() {
 	// Get network information

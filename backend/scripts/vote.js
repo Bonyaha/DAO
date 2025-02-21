@@ -1,5 +1,7 @@
 const { ethers } = require("hardhat")
-const addresses = require("../addresses")
+const {addresses} = require("../addresses")
+
+/* create checking for repeating voting */
 
 async function main() {
 // Get network information
@@ -7,6 +9,7 @@ async function main() {
 	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
 	console.log(`Running on network: ${networkName}`)
 
+//console.log(addresses)
 	const config = addresses[network.name]
 	//console.log(config)
 	const GOVERNOR_ADDRESS = config.governor.address	
@@ -35,10 +38,14 @@ async function main() {
 	if (state == 0) { // 0 = Pending
 		const currentBlock = BigInt(await ethers.provider.getBlockNumber())
 		const votingStarts = await governor.proposalSnapshot(proposalId)
+		const proposalEta = await governor.proposalEta(proposalId) //timestamp when the proposal can be executed
+		const latestBlock = await ethers.provider.getBlock('latest')
+		const currentTimestamp = BigInt(latestBlock.timestamp)
 		console.log(`Current block: ${currentBlock}`)
 		console.log(`Voting starts at block: ${votingStarts}`)
 
 		if (currentBlock <= votingStarts) {
+			const waitTime = Number(proposalEta - currentTimestamp)
 			const blocksToWait = Number(votingStarts - currentBlock + 1n)
 			console.log(`Need to wait for ${blocksToWait} blocks`)
 
@@ -53,6 +60,16 @@ async function main() {
 			} else {
 				console.log(`Voting delay not yet complete on ${networkName}.`)
 				console.log(`Please rerun this script after block ${votingStarts} is reached.`)
+				const minutes = Math.ceil(waitTime / 60)  // Total minutes, rounded up
+				const hours = Math.floor(waitTime / 3600) // Full hours
+				const remainingMinutes = Math.ceil((waitTime % 3600) / 60) // Minutes after full hours
+
+				if (hours >= 1) {
+					console.log(`That's approximately ${hours} hours and ${remainingMinutes} minutes.`)
+				} else {
+					console.log(`That's approximately ${minutes} minutes.`)
+				}
+				console.log(`Please run this script again at or after: ${new Date(Number(proposalEta) * 1000).toLocaleString()}`)
 				console.log(`Estimated wait time: ~${blocksToWait * 15} seconds (assuming 15s/block on Sepolia)`)
 				process.exit(0);
 			}

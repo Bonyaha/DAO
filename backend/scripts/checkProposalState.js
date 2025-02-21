@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat")
-const addresses = require("../addresses")
+const {addresses} = require("../addresses")
 
 
 

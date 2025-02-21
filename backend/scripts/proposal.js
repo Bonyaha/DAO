@@ -1,13 +1,48 @@
 const { ethers, network } = require("hardhat")
 const { toUtf8Bytes, keccak256 } = ethers
-const addresses = require("../addresses")
+const { addresses, updateProposalId } = require("../addresses")
+
+/* async function updateAddressesFile(networkName, proposalId) {
+	const addressesPath = path.join(__dirname, '..', 'addresses.js')
+
+	// Read the current addresses file content
+	let addressesContent = fs.readFileSync(addressesPath, 'utf8')
+	console.log(`typeof addressesContent: ${typeof addressesContent}`)
+	console.log(`addressesContent: ${addressesContent}`)
+
+	// Create the new proposalId object
+	const newProposalId = {
+		id: proposalId.toString()
+	}
+
+	// Parse the existing content to get the current structure
+	// Remove 'module.exports = ' and parse the remaining object
+	const currentAddresses = eval('(' + addressesContent.replace('module.exports = ', '') + ')')
+	console.log(`typeof currentAddresses: ${typeof currentAddresses}`)
+	console.log(currentAddresses)
+	// Update the proposalId for the specific network
+	currentAddresses[networkName] = {
+		...currentAddresses[networkName],
+		proposalId: newProposalId
+	}
+
+	// Convert back to string format with proper formatting
+	const updatedContent = 'module.exports = ' + JSON.stringify(currentAddresses, null, 2)
+		.replace(/"([^"]+)":/g, '$1:') // Convert "key": to key:
+		.replace(/"/g, '"')            // Replace straight quotes with curved quotes
+
+	// Write back to the file
+	fs.writeFileSync(addressesPath, updatedContent)
+	console.log(`Updated addresses.js with new proposal ID for network ${networkName}`)
+} */
 
 async function main() {
 	// Get network information
 	const networkName = network.name
+	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
 	console.log(`Running on network: ${networkName}`)
 
-	const config = addresses[network.name]
+	const config = addresses[networkName]
 	//console.log(config)
 	const GOVERNOR_ADDRESS = config.governor.address
 	const BOX_ADDRESS = config.box.address
@@ -17,10 +52,6 @@ async function main() {
 	console.log(`Using box address: ${BOX_ADDRESS}`)
 	console.log(`Using governance token address: ${GOVERNANCE_TOKEN_ADDRESS}`)
 
-	// Determine if we're running on a local network
-	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
-
-	
 	const [proposer] = await ethers.getSigners()
 	console.log("Creating proposal with account:", proposer.address)
 
@@ -74,13 +105,15 @@ async function main() {
 	)
 
 	const proposeReceipt = await proposeTx.wait()
-	const proposalId = proposeReceipt.logs[0].args[0]
-	console.log("Proposal created with ID:", proposalId.toString())
+	const newProposalId = proposeReceipt.logs[0].args[0]
+	console.log("Proposal created with ID:", newProposalId.toString())
+
+	updateProposalId(networkName, newProposalId)
 
 	// Get proposal state and details
-	const state = await governor.state(proposalId)
-	const snapshot = await governor.proposalSnapshot(proposalId)
-	const deadline = await governor.proposalDeadline(proposalId)
+	const state = await governor.state(newProposalId)
+	const snapshot = await governor.proposalSnapshot(newProposalId)
+	const deadline = await governor.proposalDeadline(newProposalId)
 
 	console.log("\nProposal Details:")
 	console.log("- State:", getProposalState(state))
