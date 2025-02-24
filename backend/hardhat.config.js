@@ -1,6 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox")
 require("hardhat-contract-sizer")
-require("dotenv").config();
+require("dotenv").config()
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
@@ -32,6 +32,9 @@ module.exports = {
   contractSizer: {
     runOnCompile: false,  // Runs automatically when compiling
     only: ["MyGovernor"], // Specify contracts to measure (optional)
+  },
+  paths: {
+    artifacts: "../frontend/src/artifacts"
   }
 };
 
