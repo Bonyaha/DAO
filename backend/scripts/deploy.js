@@ -1,4 +1,6 @@
 const { ethers } = require("hardhat")
+const fs = require("fs")
+const path = require("path")
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
@@ -76,6 +78,39 @@ async function main() {
 	console.log("- TimelockController:", timelock.target)
 	console.log("- Governor:", governor.target)
 	console.log("- Box:", box.target)
+
+	// Load existing addresses.json or create a new one
+	let addresses = {}
+	const addressesPath = path.join(__dirname, "../addresses.json");
+	if (fs.existsSync(addressesPath)) {
+		addresses = JSON.parse(fs.readFileSync(addressesPath, "utf-8"))
+	}
+
+	// Get the current network name
+	const networkName = hre.network.name
+
+	// Update or create the network-specific data
+	addresses[networkName] = {
+		governor: {
+			address: governor.target,
+			constructorArgs: [governanceToken.target, timelock.target],
+		},
+		box: {
+			address: box.target,
+			constructorArgs: [],
+		},
+		governanceToken: {
+			address: governanceToken.target,
+		},
+		proposalId: addresses[networkName]?.proposalId, // Preserve existing proposalId if it exists
+	}
+
+	// Write the updated addresses.json to frontend/src
+	const frontendAddressesPath = path.join(__dirname, "../../frontend/src/addresses.json")
+	fs.writeFileSync(frontendAddressesPath, JSON.stringify(addresses, null, 2))
+
+	console.log("Addresses written to frontend/src/addresses.json");
+
 }
 
 main()
