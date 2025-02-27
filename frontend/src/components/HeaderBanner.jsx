@@ -1,5 +1,3 @@
-import React from 'react'
-
 function HeaderBanner() {
 	return (
 		<div className="bg-gradient-to-b from-teal-400 to-blue-500 rounded-lg p-6 text-white text-center">

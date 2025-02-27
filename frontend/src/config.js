@@ -26,7 +26,7 @@ export const config = createConfig({
 		safe(),
 	],
 	transports: {
-		[sepolia.id]: http(), // Default HTTP transport for Sepolia
+		[sepolia.id]: http('https://eth-sepolia.g.alchemy.com/v2/zVlySCLmb1_5hBMu7qthyYRwSAKQvfRW'), // Default HTTP transport for Sepolia
 		[hardhat.id]: http('http://127.0.0.1:8545'), // Hardhat's RPC URL
 	},
 })
