@@ -11,12 +11,13 @@ import ActionButtons from './components/ActionButtons'
 import ProposalList from './components/ProposalList'
 import ProposalForm from './components/ProposalForm'
 import { WalletOptions } from './components/wallet-options'
-
+//import './App.css'
   
 
 
 function App() {
   //const [proposals, setProposals] = useState([])
+  // eslint-disable-next-line no-unused-vars
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [showWalletOptions, setShowWalletOptions] = useState(false);
 
@@ -29,25 +30,25 @@ function App() {
   };
 
   if (!isConnected) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center p-8 bg-white rounded-lg shadow-md">
-          <h1 className="text-3xl font-bold mb-6">Welcome to Our DAO</h1>
-          <p className="mb-6">Connect your wallet to participate in governance</p>
-          {showWalletOptions ? (
-            <WalletOptions />
-          ) : (
-            <button
-              onClick={() => setShowWalletOptions(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg"
-            >
-              Connect Wallet
-            </button>
-          )}
-        </div>
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="text-center p-8 bg-gray-800 rounded-lg shadow-md max-w-md w-full">
+        <h1 className="text-3xl font-bold mb-6 text-white">Welcome to Our DAO</h1>
+        <p className="mb-6 text-gray-300">Connect your wallet to participate in governance</p>
+        {showWalletOptions ? (
+          <WalletOptions />
+        ) : (
+          <button
+            onClick={() => setShowWalletOptions(true)}
+              className="bg-fuchsia-500 hover:bg-fuchsia-800 text-white font-medium px-6 py-3 rounded-lg w-full transition-colors duration-200"
+          >
+            Connect Wallet
+          </button>
+        )}
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
 
