@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useReadContract, useAccount, usePublicClient, useWatchContractEvent } from 'wagmi'
-//import { getContract } from 'viem'
+import { formatUnits } from 'viem'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
+import MyToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import addresses from '../addresses.json'
 
 function DashboardCards() {
   const [proposalCount, setProposalCount] = useState(0)
   const [governorAddress, setGovernorAddress] = useState('')
-  const [votingPower, setVotingPower] = useState(0)
+  const [tokenAddress, setTokenAddress] = useState('')
+  const [votingPower, setVotingPower] = useState('0')
   // eslint-disable-next-line no-unused-vars
   const [eligibleVoters, setEligibleVoters] = useState(1) // Hardcoded for now as in original
 
@@ -27,6 +29,7 @@ function DashboardCards() {
 
       if (addresses[currentNetwork]) {
         setGovernorAddress(addresses[currentNetwork].governor.address)
+        setTokenAddress(addresses[currentNetwork].governanceToken.address)
       } else {
         console.error(`Network ${currentNetwork} not found in addresses.json`)
       }
@@ -43,12 +46,44 @@ function DashboardCards() {
     enabled: isConnected && !!governorAddress
   })
 
+  // Get the user's voting power using useReadContract
+  const { data: votingPowerData } = useReadContract({
+    address: tokenAddress,
+    abi: MyToken.abi,
+    functionName: 'getVotes', // Or the appropriate function in your token contract
+    args: [address],
+    enabled: isConnected && !!tokenAddress && !!address
+  })
+
   // Update state when proposal count data changes
   useEffect(() => {
     if (proposalCountData) {
       setProposalCount(Number(proposalCountData))
     }
   }, [proposalCountData])
+
+  // Update state when voting power data changes
+  useEffect(() => {
+    if (votingPowerData) {
+      try {
+        // Format the bigint value to a human-readable format
+        // Assuming 18 decimals for ERC20 token (adjust if your token uses different decimals)
+        const formatted = formatUnits(votingPowerData, 18)
+
+        // Format number with commas for readability
+        const readableFormat = parseFloat(formatted).toLocaleString(undefined, {
+          maximumFractionDigits: 2,
+          minimumFractionDigits: 0
+        })
+
+        setVotingPower(readableFormat)
+      } catch (error) {
+        console.error('Error formatting voting power:', error)
+        // Fallback to string representation if formatting fails
+        setVotingPower(votingPowerData.toString())
+      }
+    }
+  }, [votingPowerData])
 
   // Watch for ProposalCreated events
   useWatchContractEvent({
@@ -72,23 +107,28 @@ function DashboardCards() {
     enabled: !!governorAddress && !!publicClient,
   })
 
-  // Fetch voting power (this would need to be implemented based on your token contract)
-  // This is a placeholder that you would need to replace with actual implementation
-  useEffect(() => {
-    const fetchVotingPower = async () => {
-      if (!address || !governorAddress || !publicClient) return
-
-      try {
-        // This is where you would call your token contract to get voting power
-        // For now, just setting it to 0 as in the original code
-        setVotingPower(0)
-      } catch (error) {
-        console.error('Error fetching voting power:', error)
+   useWatchContractEvent({
+    address: tokenAddress,
+    abi: MyToken.abi,
+    eventName: 'DelegateChanged', // Or similar event in your token contract
+    onLogs() {
+      // Refetch the voting power when delegation changes
+      if (publicClient && tokenAddress && address) {
+        publicClient.readContract({
+          address: tokenAddress,
+          abi: MyToken.abi,
+          functionName: 'getVotes', // Or the appropriate function
+          args: [address],
+        }).then(power => {
+          setVotingPower(Number(power))
+        }).catch(error => {
+          console.error('Error fetching voting power:', error)
+        })
       }
-    }
-
-    fetchVotingPower()
-  }, [address, governorAddress, publicClient])
+    },
+    enabled: !!tokenAddress && !!publicClient && !!address,
+  })
+  
 
   return (
     <div className="flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0 sm:space-x-4 mt-8">
