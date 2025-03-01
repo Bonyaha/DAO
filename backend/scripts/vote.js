@@ -12,7 +12,8 @@ async function main() {
 //console.log(addresses)
 	const config = addresses[network.name]
 	//console.log(config)
-	const GOVERNOR_ADDRESS = config.governor.address	
+	const GOVERNOR_ADDRESS = config.governor.address
+	const TOKEN_ADDRESS = config.governanceToken.address	
 	const PROPOSAL_ID = config.proposalId.id
 
 	//console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
@@ -26,6 +27,7 @@ async function main() {
 	console.log("Current block:", await ethers.provider.getBlockNumber());
 
 	const governor = await ethers.getContractAt("MyGovernor", GOVERNOR_ADDRESS)
+const governanceToken = await ethers.getContractAt("GovernanceToken", TOKEN_ADDRESS)
 
 	// Check proposal state first
 	let state = await governor.state(proposalId)
@@ -86,6 +88,25 @@ async function main() {
 		process.exit(0)
 	}
 
+	// check voting eligibility
+	const [voter] = await ethers.getSigners()
+	console.log("Voting with account:", voter.address)
+
+	// Check if voter has voting power
+	const votes = await governanceToken.getVotes(voter.address)
+	if (votes === 0n) {
+		console.log("Error: Account has no voting power. Please delegate tokens first.")
+		process.exit(1)
+	}
+
+	// Check if voter has already voted
+	const hasVoted = await governor.hasVoted(proposalId, voter.address)
+	if (hasVoted) {
+		console.log("Error: This account has already voted on this proposal.")
+		process.exit(1)
+	}
+
+	console.log(`Account has ${ethers.formatEther(votes)} voting power.`);
 	// 0 = Against, 1 = For, 2 = Abstain
 	const votingWay = 1
 	const voteTx = await governor.castVote(proposalId, votingWay)
