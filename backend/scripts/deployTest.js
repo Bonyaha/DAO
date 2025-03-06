@@ -3,7 +3,7 @@ const fs = require("fs")
 const path = require("path")
 
 async function main() {
-	const [deployer, voter1, voter2] = await ethers.getSigners()
+	const [deployer, voter1, voter2,voter3,voter4,voter5] = await ethers.getSigners()
 	console.log("Deploying contracts with the account:", deployer.address)
 	console.log("Additional voters:", voter1.address, voter2.address)
 
@@ -61,7 +61,21 @@ async function main() {
 	await delegateTx.wait()
 	console.log("Deployer delegated to self")
 
-	// Transfer tokens to voter1 and have them delegate to themselves
+	const voters = [voter1, voter2, voter3, voter4, voter5]
+
+	// Setup voting power
+	for (const voter of voters) {
+		await governanceToken.connect(voter).claimTokens()
+	}
+
+// Delegate votes and wait for a block to ensure checkpoint is created
+
+			for (const voter of voters) {
+				await governanceToken.connect(voter).delegate(voter.address)
+				await network.provider.send("evm_mine")
+			}
+			console.log("Voters delegated to themselves")
+	/* // Transfer tokens to voter1 and have them delegate to themselves
 	const claimTx1 = await governanceToken.connect(voter1).claimTokens()
 	await claimTx1.wait()
 	console.log("Transferred tokens to voter1")
@@ -81,7 +95,7 @@ async function main() {
 	const voter2Token = governanceToken.connect(voter2)
 	const delegate2Tx = await voter2Token.delegate(voter2.address)
 	await delegate2Tx.wait()
-	console.log("Voter2 delegated to self")
+	console.log("Voter2 delegated to self") */
 
 	// Setup roles
 	console.log("Setting up roles...")
@@ -141,6 +155,7 @@ async function main() {
 			address: governanceToken.target,
 		},
 		proposalId: addresses[networkName]?.proposalId, // Preserve existing proposalId if it exists
+		proposalValue: addresses[networkName]?.proposalValue, // Preserve existing proposalValue if it exists
 	}
 
 	// Write the updated addresses.json to backend (current directory)

@@ -13,6 +13,7 @@ async function main() {
 	const GOVERNOR_ADDRESS = config.governor.address
 	const BOX_ADDRESS = config.box.address
 	const PROPOSAL_ID = config.proposalId.id
+	const PROPOSAL_VALUE = config.proposalValue.value
 
 	//console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)	
 
@@ -20,7 +21,7 @@ async function main() {
 	const governor = await ethers.getContractAt("MyGovernor", GOVERNOR_ADDRESS)
 	const proposalId = PROPOSAL_ID
 	const boxAddress = BOX_ADDRESS
-	const value = process.env.PROPOSAL_VALUE || 42
+	const value = PROPOSAL_VALUE || 77
 	const description = `Proposal #${await governor.getNumberOfProposals()}: Store ${value} in Box`
 
 	if (!proposalId || !boxAddress) {

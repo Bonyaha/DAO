@@ -69,20 +69,20 @@ function App() {
 
         <HeaderBanner />
         <DashboardCards />
-        <ActionButtons />       
+        <ActionButtons />     
 
-       { <div className="mt-8">
+      {/*  { <div className="mt-8">
           {showProposalForm ? (
             <ProposalForm
-              /* governorContract={governorContract}
+              governorContract={governorContract}
               refreshProposals={fetchProposals}
-              onClose={() => setShowProposalForm(false)} */
+              onClose={() => setShowProposalForm(false)}
             />
           ) : (
             <ProposalList              
             />
           )}
-        </div>}
+        </div>} */}
       </div>
     </div>
   )

@@ -91,7 +91,10 @@ async function main() {
 
 	// Create proposal
 	console.log("Creating proposal...")
-	const newValue = 42 // The value we want to store in the Box contract
+	//const newValue = 42 // The value we want to store in the Box contract
+	const newValue = process.env.PROPOSAL_VALUE
+console.log(`newValue: ${newValue}`);
+
 	const encodedFunctionCall = box.interface.encodeFunctionData("store", [newValue])
 	const descriptionString = `Proposal #${await governor.getNumberOfProposals() + 1n}: Store ${newValue} in Box`
 
@@ -108,7 +111,7 @@ async function main() {
 	const newProposalId = proposeReceipt.logs[0].args[0]
 	console.log("Proposal created with ID:", newProposalId.toString())
 
-	updateProposalId(networkName, newProposalId)
+	updateProposalId(networkName, newProposalId,newValue)
 
 	// Get proposal state and details
 	const state = await governor.state(newProposalId)
