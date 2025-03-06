@@ -6,7 +6,7 @@ import { useAccount, /* useConnect, */ useDisconnect, /* useContractRead */ } fr
 //import addresses from './addresses.json'
 import HeaderBanner from './components/HeaderBanner'
 import DashboardCards from './components/DashboardCards'
-import ActionButtons from './components/ActionButtons'
+import ActionButtons from './components/actionsTest'
 //import { Account } from './components/account'
 import ProposalList from './components/ProposalList'
 import ProposalForm from './components/ProposalForm'

@@ -1,6 +1,7 @@
 const { ethers, network } = require("hardhat")
 const { toUtf8Bytes, keccak256 } = ethers
 const { addresses, updateProposalId } = require("../addresses")
+const { log } = require('node:console')
 
 /**
  * Create a governance proposal to store a value in the Box contract
@@ -77,6 +78,8 @@ async function createProposal(options = {}) {
 	// Ensure proposer has tokens and has delegated them
 	console.log("Checking token balance and delegation...")
 	const balance = await governanceToken.balanceOf(proposer.address)
+console.log(`balance: ${balance}`);
+
 	if (balance === 0n) {
 		console.log("Claiming tokens...")
 		const claimTx = await governanceToken.connect(proposer).claimTokens()
