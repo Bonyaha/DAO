@@ -1,7 +1,6 @@
 const { ethers, network } = require("hardhat")
 const { toUtf8Bytes, keccak256 } = ethers
 const { addresses, updateProposalId } = require("../addresses")
-const { log } = require('node:console')
 
 /**
  * Create a governance proposal to store a value in the Box contract
