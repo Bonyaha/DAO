@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useReadContract, useAccount, usePublicClient, useWatchContractEvent } from 'wagmi'
 import { formatUnits } from 'viem'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
@@ -18,6 +18,11 @@ function DashboardCards() {
   // Helper function to format voting power consistently
   const formatVotingPower = (bigintValue) => {
     try {
+      // Handle case where voting power is 0 or undefined
+      if (!bigintValue || bigintValue === 0n) {
+        return '0'
+      }
+
       const formatted = formatUnits(bigintValue, 18)
       return parseFloat(formatted).toLocaleString(undefined, {
         maximumFractionDigits: 2,
@@ -25,7 +30,7 @@ function DashboardCards() {
       })
     } catch (error) {
       console.error('Error formatting voting power:', error)
-      return bigintValue.toString()
+      return '0'
     }
   }
 
@@ -49,6 +54,69 @@ function DashboardCards() {
 
     initializeNetwork()
   }, [chain])
+
+  // Function to update voting power using useCallback to avoid dependency issues
+  const refreshVotingPower = useCallback(async () => {
+    if (!publicClient || !tokenAddress || !address) return
+
+    try {
+      const power = await publicClient.readContract({
+        address: tokenAddress,
+        abi: GovernanceToken.abi,
+        functionName: 'getVotes',
+        args: [address],
+      })
+
+      console.log(`Refreshed voting power for ${address}: ${power}`)
+      setVotingPower(formatVotingPower(power))
+    } catch (error) {
+      console.error('Error fetching voting power:', error)
+      setVotingPower('0')
+    }
+  }, [publicClient, tokenAddress, address])
+
+  // Reset voting power when account changes
+  useEffect(() => {
+    // Reset voting power to 0 when account changes
+    setVotingPower('0')
+
+    // Fetch the updated voting power for the new account
+    if (isConnected && tokenAddress && address) {
+      refreshVotingPower()
+    }
+  }, [address, tokenAddress, isConnected, refreshVotingPower])
+
+  // Function to update eligible voters count
+  const refreshEligibleVoters = useCallback(async () => {
+    if (!publicClient || !tokenAddress) return
+
+    try {
+      const count = await publicClient.readContract({
+        address: tokenAddress,
+        abi: GovernanceToken.abi,
+        functionName: 'getTokenHolders',
+      })
+      setEligibleVoters(Number(count))
+    } catch (error) {
+      console.error('Error fetching eligible voters:', error)
+    }
+  }, [publicClient, tokenAddress])
+
+  // Helper function to fetch the latest proposal count
+  const refreshProposalCount = useCallback(async () => {
+    if (!publicClient || !governorAddress) return
+
+    try {
+      const count = await publicClient.readContract({
+        address: governorAddress,
+        abi: MyGovernor.abi,
+        functionName: 'getNumberOfProposals',
+      })
+      setProposalCount(Number(count))
+    } catch (error) {
+      console.error('Error fetching proposal count:', error)
+    }
+  }, [publicClient, governorAddress])
 
   // Get proposal count using useReadContract
   const { data: proposalCountData } = useReadContract({
@@ -75,56 +143,6 @@ function DashboardCards() {
     enabled: isConnected && !!tokenAddress
   })
 
-  // Function to update voting power
-  const refreshVotingPower = async () => {
-    if (!publicClient || !tokenAddress || !address) return
-
-    try {
-      const power = await publicClient.readContract({
-        address: tokenAddress,
-        abi: GovernanceToken.abi,
-        functionName: 'getVotes',
-        args: [address],
-      })
-
-      setVotingPower(formatVotingPower(power))
-    } catch (error) {
-      console.error('Error fetching voting power:', error)
-    }
-  }
-
-  // Function to update eligible voters count
-  const refreshEligibleVoters = async () => {
-    if (!publicClient || !tokenAddress) return
-
-    try {
-      const count = await publicClient.readContract({
-        address: tokenAddress,
-        abi: GovernanceToken.abi,
-        functionName: 'getTokenHolders',
-      })
-      setEligibleVoters(Number(count))
-    } catch (error) {
-      console.error('Error fetching eligible voters:', error)
-    }
-  }
-
-  // Helper function to fetch the latest proposal count
-  const refreshProposalCount = async () => {
-    if (!publicClient || !governorAddress) return
-
-    try {
-      const count = await publicClient.readContract({
-        address: governorAddress,
-        abi: MyGovernor.abi,
-        functionName: 'getNumberOfProposals',
-      })
-      setProposalCount(Number(count))
-    } catch (error) {
-      console.error('Error fetching proposal count:', error)
-    }
-  }
-
   // Update state when proposal count data changes
   useEffect(() => {
     if (proposalCountData) {
@@ -134,7 +152,8 @@ function DashboardCards() {
 
   // Update state when voting power data changes
   useEffect(() => {
-    if (votingPowerData) {
+    if (votingPowerData !== undefined) {
+      console.log(`Setting voting power from hook data: ${votingPowerData}`)
       setVotingPower(formatVotingPower(votingPowerData))
     }
   }, [votingPowerData])
@@ -145,8 +164,6 @@ function DashboardCards() {
       setEligibleVoters(Number(eligibleVotersData))
     }
   }, [eligibleVotersData])
-
-  
 
   // Watch for ProposalCreated events
   useWatchContractEvent({
