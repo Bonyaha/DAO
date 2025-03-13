@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
@@ -11,6 +11,7 @@ function ActionButtons() {
 	const [tokenAddress, setTokenAddress] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [isClaimLoading, setIsClaimLoading] = useState(false)
+	const [showProposalList, setShowProposalList] = useState(false)
 	const [, setCurrentNetwork] = useState('')
 
 	const { chain } = useAccount()
@@ -54,7 +55,7 @@ function ActionButtons() {
 		})
 
 	// Add token to MetaMask using wagmi/viem approach
-	const addTokenToMetamask = async () => {
+	const addTokenToMetamask = useCallback(async () => {
 		if (!tokenAddress || !window.ethereum) return
 
 		try {
@@ -78,7 +79,7 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error adding token to MetaMask', error)
 		}
-	}
+	}, [tokenAddress])
 
 	// Handle Current Value button click
 	const handleGetCurrentValue = async () => {
@@ -122,7 +123,7 @@ function ActionButtons() {
 			// Prompt to add token to MetaMask after successful claim
 			addTokenToMetamask()
 		}
-	}, [isTxSuccess])
+	}, [isTxSuccess, addTokenToMetamask])
 
 	// Determine button text states
 	const valueButtonText = isLoading ? 'LOADING...' :
@@ -131,6 +132,11 @@ function ActionButtons() {
 
 	const fundButtonText = isClaimLoading || isPending || isTxLoading ?
 		'CLAIMING...' : 'GET FUNDS'
+
+	const toggleProposalList = () => {
+		setShowProposalList(!showProposalList)
+	};
+
 
 	return (
 		<div className="bg-blue-500 p-4 mt-8 flex flex-wrap justify-center space-x-4 rounded-lg">
@@ -157,8 +163,11 @@ function ActionButtons() {
 			<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
 				PROPOSE
 			</button>
-			<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
-				VOTE
+			<button
+				onClick={toggleProposalList}
+				className="bg-purple-500 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200"
+			>
+				{showProposalList ? 'Hide Proposals' : 'View Proposals'}
 			</button>
 			<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
 				EXECUTE

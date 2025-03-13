@@ -4,7 +4,8 @@ import { BaseError, ContractFunctionRevertedError } from 'viem'
 import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import addresses from '../addresses.json'
-import ProposalForm from './ProposalForm';
+import ProposalForm from './ProposalForm'
+import ProposalList from './ProposalList'
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
@@ -16,7 +17,8 @@ function ActionButtons() {
 	const [, setCurrentNetwork] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
 	const [showError, setShowError] = useState(false)
-	const [showProposalForm, setShowProposalForm] = useState(false);
+	const [showProposalForm, setShowProposalForm] = useState(false)
+	const [showProposalList, setShowProposalList] = useState(false)
 
 	const { chain } = useAccount()
 
@@ -188,7 +190,7 @@ function ActionButtons() {
 	const handleProposalSuccess = () => {
 		// You can refresh proposals or show a success message
 		console.log('Proposal submitted successfully!')
-	};
+	}
 
 	// Close error message
 	const closeError = () => {
@@ -211,66 +213,79 @@ function ActionButtons() {
 
 	const fundButtonText = isClaimLoading || isPending || isTxLoading ?
 		'CLAIMING...' : 'GET FUNDS'
+	const toggleProposalList = () => {
+		setShowProposalList(!showProposalList)
+	}
 
 	return (
-		<div className="flex flex-col items-center">
-			{/* Error Alert */}
-			{showError && (
-				<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
-					<strong className="font-bold">Error: </strong>
-					<span className="block sm:inline">{errorMessage}</span>
-					<span
-						className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
-						onClick={closeError}
-					>
-						<span className="text-red-500">×</span>
-					</span>
-				</div>
-			)}
-
-			{/* Action Buttons */}
-			<div className="bg-blue-500 p-4 mt-2 flex flex-wrap justify-center space-x-4 rounded-lg">
-				<button
-					onClick={handleGetCurrentValue}
-					disabled={isLoading}
-					className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow disabled:opacity-50"
-				>
-					{valueButtonText}
-				</button>
-				<button
-					onClick={handleGetFunds}
-					disabled={isClaimLoading || isPending || isTxLoading}
-					className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow disabled:opacity-50"
-				>
-					{fundButtonText}
-				</button>
-				<button
-					onClick={addTokenToMetamask}
-					className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow ml-2"
-				>
-					ADD TOKEN TO WALLET
-				</button>
-				<button
-					onClick={handlePropose}
-					className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
-				>
-					PROPOSE
-				</button>
-				<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
-					VOTE
-				</button>
-				<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
-					EXECUTE
-				</button>
-				{/* Proposal Form Modal */}
-				{showProposalForm && (
-					<ProposalForm
-						onClose={() => setShowProposalForm(false)}
-						onSuccess={handleProposalSuccess}
-					/>
+		<>
+			<div className="flex flex-col items-center w-full">
+				{/* Error Alert */}
+				{showError && (
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
+						<strong className="font-bold">Error: </strong>
+						<span className="block sm:inline">{errorMessage}</span>
+						<span
+							className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+							onClick={closeError}
+						>
+							<span className="text-red-500">×</span>
+						</span>
+					</div>
 				)}
+
+				{/* Action Buttons */}
+				<div className="bg-blue-500 p-4 mt-2 flex flex-wrap justify-center space-x-4 rounded-lg">
+					<button
+						onClick={handleGetCurrentValue}
+						disabled={isLoading}
+						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow disabled:opacity-50"
+					>
+						{valueButtonText}
+					</button>
+					<button
+						onClick={handleGetFunds}
+						disabled={isClaimLoading || isPending || isTxLoading}
+						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow disabled:opacity-50"
+					>
+						{fundButtonText}
+					</button>
+					<button
+						onClick={addTokenToMetamask}
+						className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow ml-2"
+					>
+						ADD TOKEN TO WALLET
+					</button>
+					<button
+						onClick={handlePropose}
+						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
+					>
+						PROPOSE
+					</button>
+					<button
+						onClick={toggleProposalList}
+						className="bg-purple-500 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200"
+					>
+						{showProposalList ? 'Hide Proposals' : 'View Proposals'}
+					</button>
+
+					{/* Proposal Form Modal */}
+					{showProposalForm && (
+						<ProposalForm
+							onClose={() => setShowProposalForm(false)}
+							onSuccess={handleProposalSuccess}
+						/>
+					)}
+				</div>
 			</div>
-		</div>
+			{
+				showProposalList && (
+					<div className="mt-8">
+						<ProposalList />
+					</div>
+				)
+			}
+		</>
 	)
 }
 
