@@ -57,7 +57,7 @@ const ProposalList = () => {
 	}, [chain])
 
 	// Get total proposal count from contract
-	const { data: proposalCount } = useReadContract({
+	const { data: proposalCount, refetch: refetchProposalCount } = useReadContract({
 		address: governorAddress,
 		abi: MyGovernor.abi,
 		functionName: 'getNumberOfProposals',
@@ -81,17 +81,6 @@ const ProposalList = () => {
 
 		setIsLoading(true)
 		try {
-			/* const governor = getContract({
-				address: governorAddress,
-				abi: MyGovernor.abi,
-				publicClient,
-			}) */
-
-			//console.log('Governor Contract:', governor);
-
-			//const latestBlock = await publicClient.getBlockNumber()
-			//const startBlock = Math.max(0, Number(latestBlock) - 5000);
-
 			// Get ProposalCreated events
 			const events = await publicClient.getContractEvents({
 				address: governorAddress,
@@ -146,6 +135,7 @@ const ProposalList = () => {
 
 			const proposalData = await Promise.all(proposalPromises)
 			setProposals(proposalData)
+			
 		} catch (error) {
 			console.error('Error fetching proposals:', error)
 		} finally {
@@ -211,6 +201,7 @@ const ProposalList = () => {
 		eventName: 'ProposalCreated',
 		onLogs() {
 			fetchProposalEvents()
+			refetchProposalCount()
 		},
 		enabled: !!governorAddress,
 	})
@@ -332,6 +323,10 @@ const ProposalList = () => {
 			setPage(page - 1)
 		}
 	}
+
+console.log(`totalProposals: ${totalProposals}`)
+console.log(`proposals.length: ${proposals.length}`);
+
 
 	if (isLoading && !proposals.length) {
 		return (
