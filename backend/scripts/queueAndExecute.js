@@ -22,7 +22,9 @@ async function main() {
 	const proposalId = PROPOSAL_ID
 	const boxAddress = BOX_ADDRESS
 	const value = PROPOSAL_VALUE || 77
-	const description = `Proposal #${await governor.getNumberOfProposals()}: Store ${value} in Box`
+	//const description = `Proposal #${await governor.getNumberOfProposals()}: Store ${value} in Box`
+	const description = `test#3`
+
 
 	if (!proposalId || !boxAddress) {
 		throw new Error("Please set PROPOSAL_ID and BOX_ADDRESS environment variables")

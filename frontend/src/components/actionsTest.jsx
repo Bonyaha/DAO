@@ -4,6 +4,7 @@ import { BaseError, ContractFunctionRevertedError } from 'viem'
 import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import addresses from '../addresses.json'
+import ProposalForm from './ProposalForm';
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
@@ -15,6 +16,7 @@ function ActionButtons() {
 	const [, setCurrentNetwork] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
 	const [showError, setShowError] = useState(false)
+	const [showProposalForm, setShowProposalForm] = useState(false);
 
 	const { chain } = useAccount()
 
@@ -177,6 +179,17 @@ function ActionButtons() {
 		}
 	}
 
+	// Handle Propose button click
+	const handlePropose = () => {
+		setShowProposalForm(true)
+	}
+
+	// Handle proposal success
+	const handleProposalSuccess = () => {
+		// You can refresh proposals or show a success message
+		console.log('Proposal submitted successfully!')
+	};
+
 	// Close error message
 	const closeError = () => {
 		setShowError(false)
@@ -237,7 +250,10 @@ function ActionButtons() {
 				>
 					ADD TOKEN TO WALLET
 				</button>
-				<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
+				<button
+					onClick={handlePropose}
+					className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
+				>
 					PROPOSE
 				</button>
 				<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
@@ -246,6 +262,13 @@ function ActionButtons() {
 				<button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
 					EXECUTE
 				</button>
+				{/* Proposal Form Modal */}
+				{showProposalForm && (
+					<ProposalForm
+						onClose={() => setShowProposalForm(false)}
+						onSuccess={handleProposalSuccess}
+					/>
+				)}
 			</div>
 		</div>
 	)

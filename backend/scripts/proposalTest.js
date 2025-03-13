@@ -69,6 +69,8 @@ async function createProposal(options = {}) {
 	} else {
 		// Default to first signer if no specific address provided
 		const signers = await ethers.getSigners()
+console.log(`signers: ${signers}`);
+
 		proposer = signers[0]
 	}
 

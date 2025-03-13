@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useReadContract, useWriteContract, useWatchContractEvent, useAccount, usePublicClient } from 'wagmi'
-import { getContract } from 'viem'
+import { useReadContract, useWriteContract, useWatchContractEvent, useAccount, usePublicClient, useBlockNumber } from 'wagmi'
+//import { getContract } from 'viem'
 import { ethers } from 'ethers'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 //import MyToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
@@ -27,12 +27,12 @@ const ProposalList = () => {
 	const [governorAddress, setGovernorAddress] = useState('')
 	//const [tokenAddress, setTokenAddress] = useState('')
 
-	const { chain, isConnected, address } = useAccount()
+	const { chain } = useAccount()
 	const publicClient = usePublicClient()
-	console.log('Public Client:', publicClient)
-	console.log('Connected Address:', address)
-	console.log('Connected Chain:', chain?.name)
-	if (isConnected) console.log('isConnected:', isConnected);
+	//console.log('Public Client:', publicClient)
+	//console.log('Connected Address:', address)
+	//console.log('Connected Chain:', chain?.name)
+	//if (isConnected) console.log('isConnected:', isConnected);
 
 	// Initialize network and contract addresses using Wagmi
 	useEffect(() => {
@@ -81,17 +81,17 @@ const ProposalList = () => {
 
 		setIsLoading(true)
 		try {
-			const governor = getContract({
+			/* const governor = getContract({
 				address: governorAddress,
 				abi: MyGovernor.abi,
 				publicClient,
-			})
+			}) */
 
-			console.log('Governor Contract:', governor);
+			//console.log('Governor Contract:', governor);
 
 			//const latestBlock = await publicClient.getBlockNumber()
 			//const startBlock = Math.max(0, Number(latestBlock) - 5000);
-			
+
 			// Get ProposalCreated events
 			const events = await publicClient.getContractEvents({
 				address: governorAddress,
@@ -103,6 +103,7 @@ const ProposalList = () => {
 
 			// Sort by blockNumber in descending order
 			events.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))
+			//console.log('Events:', events);
 
 			const startIdx = page * PROPOSALS_PER_PAGE
 			const endIdx = startIdx + PROPOSALS_PER_PAGE
@@ -126,12 +127,12 @@ const ProposalList = () => {
 					functionName: 'proposalVotes',
 					args: [proposalId],
 				})
-				const [title, desc] = description.split('#').map((s) => s.trim())
-				
+				//const [title, desc] = description.split('#').map((s) => s.trim())
+
 				return {
 					id: proposalId,
-					title: title || 'Untitled Proposal',
-					description: desc || description,
+					title: 'Untitled Proposal',
+					description: description,
 					state: Number(state),
 					forVotes: ethers.formatEther(proposalVotes[1]),
 					againstVotes: ethers.formatEther(proposalVotes[0]),
@@ -151,6 +152,57 @@ const ProposalList = () => {
 			setIsLoading(false)
 		}
 	}, [governorAddress, page, publicClient])
+
+	// Get the current block number using Wagmi
+	const { data: currentBlock } = useBlockNumber()
+
+	useEffect(() => {
+		if (!currentBlock || !governorAddress || !publicClient) return
+
+		const checkProposalStatus = async () => {
+			setProposals(prevProposals => {
+				if (!prevProposals.length) return prevProposals
+
+				const proposalsToUpdate = [...prevProposals]
+
+					// Using async IIFE (Immediately Invoked Function Expression)
+					; (async () => {
+						const results = await Promise.all(proposalsToUpdate.map(async (proposal) => {
+							const proposalSnapshot = await publicClient.readContract({
+								address: governorAddress,
+								abi: MyGovernor.abi,
+								functionName: 'proposalSnapshot',
+								args: [proposal.id],
+							})
+
+							const thresholdBlock = Number(proposalSnapshot) + 1
+
+							if (currentBlock >= thresholdBlock && proposal.state === 0) {
+								const state = await publicClient.readContract({
+									address: governorAddress,
+									abi: MyGovernor.abi,
+									functionName: 'state',
+									args: [proposal.id],
+								})
+
+								proposal.state = Number(state)
+								return true
+							}
+							return false
+						}))
+
+						// Check if any proposals changed and update state if needed
+						if (results.some(changed => changed)) {
+							setProposals([...proposalsToUpdate])
+						}
+					})()
+
+				return prevProposals
+			})
+		}		
+		// Call the check when a new block is detected
+		checkProposalStatus()
+	}, [currentBlock, governorAddress, publicClient])
 
 	// Event listeners
 	useWatchContractEvent({
@@ -176,12 +228,23 @@ const ProposalList = () => {
 	useWatchContractEvent({
 		address: governorAddress,
 		abi: MyGovernor.abi,
+		eventName: 'ProposalQueued',
+		onLogs() {
+			fetchProposalEvents()
+		},
+		enabled: !!governorAddress,
+	})
+
+	useWatchContractEvent({
+		address: governorAddress,
+		abi: MyGovernor.abi,
 		eventName: 'ProposalExecuted',
 		onLogs() {
 			fetchProposalEvents()
 		},
 		enabled: !!governorAddress,
 	})
+
 
 	useEffect(() => {
 		if (governorAddress) {
@@ -190,7 +253,29 @@ const ProposalList = () => {
 	}, [governorAddress, page, fetchProposalEvents])
 
 	const { writeContract: castVote, isPending: votingInProgress } = useWriteContract()
-	const { writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
+	const { data: executionHash, writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
+
+	// useEffect to handle executionHash updates
+	useEffect(() => {
+		if (executionHash) {
+			console.log('Transaction hash:', executionHash) // Now it will log the actual hash
+
+			const waitForReceipt = async () => {
+				try {
+					const receipt = await publicClient.waitForTransactionReceipt({ hash: executionHash })
+					if (receipt.status === 'success') {
+						console.log('Proposal executed successfully') // Now this should log correctly
+					} else {
+						console.error('Transaction failed:', receipt)
+					}
+				} catch (waitError) {
+					console.error('Error waiting for transaction:', waitError)
+				}
+			}
+
+			waitForReceipt()
+		}
+	}, [executionHash, publicClient])
 
 	const handleVote = async (proposalId, support) => {
 		try {
@@ -206,6 +291,21 @@ const ProposalList = () => {
 	}
 
 	const handleExecute = async (proposal) => {
+		const argsForExecuteProposal = { // Create a variable for clarity
+			targets: proposal.targets,
+			values: proposal.values,
+			calldatas: proposal.calldatas,
+			descriptionHash: proposal.descriptionHash
+		}
+		console.log(
+			"Arguments for executeProposal (JSON.stringify):",
+			JSON.stringify(
+				argsForExecuteProposal,
+				(key, value) => (typeof value === 'bigint' ? value.toString() : value), // Replacer function
+				2
+			)
+		)
+
 		try {
 			await executeProposal({
 				address: governorAddress,
@@ -213,10 +313,13 @@ const ProposalList = () => {
 				functionName: 'execute',
 				args: [proposal.targets, proposal.values, proposal.calldatas, proposal.descriptionHash],
 			})
+
 		} catch (error) {
 			console.error('Error executing proposal:', error)
 		}
 	}
+
+	//console.log('Transaction hash:', executionHash)
 
 	const handleNextPage = () => {
 		if ((page + 1) * PROPOSALS_PER_PAGE < totalProposals) {
@@ -258,10 +361,10 @@ const ProposalList = () => {
 								<div className="flex justify-between items-center mt-4">
 									<span
 										className={`px-3 py-1 rounded-full text-sm ${['Succeeded', 'Executed'].includes(ProposalStatusMap[proposal.state])
-												? 'bg-green-100 text-green-800'
-												: ['Defeated', 'Canceled', 'Expired'].includes(ProposalStatusMap[proposal.state])
-													? 'bg-red-100 text-red-800'
-													: 'bg-blue-100 text-blue-800'
+											? 'bg-green-100 text-green-800'
+											: ['Defeated', 'Canceled', 'Expired'].includes(ProposalStatusMap[proposal.state])
+												? 'bg-red-100 text-red-800'
+												: 'bg-blue-100 text-blue-800'
 											}`}
 									>
 										{ProposalStatusMap[proposal.state]}
@@ -292,7 +395,7 @@ const ProposalList = () => {
 												</button>
 											</>
 										)}
-										{proposal.state === 4 && (
+										{proposal.state === 5 && (
 											<button
 												onClick={() => handleExecute(proposal)}
 												className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600"
@@ -328,8 +431,8 @@ const ProposalList = () => {
 								onClick={handleNextPage}
 								disabled={(page + 1) * PROPOSALS_PER_PAGE >= totalProposals}
 								className={`px-4 py-2 rounded ${(page + 1) * PROPOSALS_PER_PAGE >= totalProposals
-										? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-										: 'bg-blue-500 text-white hover:bg-blue-600'
+									? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+									: 'bg-blue-500 text-white hover:bg-blue-600'
 									}`}
 							>
 								Next
