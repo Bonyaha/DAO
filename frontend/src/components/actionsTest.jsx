@@ -5,7 +5,7 @@ import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import addresses from '../addresses.json'
 import ProposalForm from './ProposalForm'
-import ProposalList from './ProposalList'
+import ProposalList from './ProposalListTest'
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)

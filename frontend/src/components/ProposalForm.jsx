@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from 'react'
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
-import { BaseError, encodeFunctionData, decodeEventLog,decodeFunctionData } from 'viem'
+import { BaseError, encodeFunctionData, decodeEventLog, decodeFunctionData } from 'viem'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import Box from '../artifacts/contracts/Box.sol/Box.json'
 import addresses from '../addresses.json'
@@ -120,7 +120,7 @@ function ProposalForm({ onClose, onSuccess }) {
         try {
           const receipt = txReceiptData
           console.log(receipt)
-          
+
           const log = receipt.logs.find(
             (log) => log.address.toLowerCase() === governorAddress.toLowerCase()
           )
@@ -131,11 +131,11 @@ function ProposalForm({ onClose, onSuccess }) {
             abi: MyGovernor.abi,
             data: log.data,
             topics: log.topics,
-          });
-console.log('decodedLog:', decodedLog);
+          })
+          console.log('decodedLog:', decodedLog)
 
           const proposalId = decodedLog.args.proposalId
-          console.log('Proposal ID:', proposalId.toString());
+          console.log('Proposal ID:', proposalId.toString())
 
           // Decode the calldata to extract the targetValue
           const calldata = decodedLog.args.calldatas[0]
@@ -144,7 +144,7 @@ console.log('decodedLog:', decodedLog);
             data: calldata,
           })
           const newValue = decodedCalldata.args[0]
-          console.log('Proposed new value:', newValue.toString());
+          console.log('Proposed new value:', newValue.toString())
 
 
           setIsSubmitting(false)
@@ -158,7 +158,7 @@ console.log('decodedLog:', decodedLog);
 
       getProposalId()
     }
-  }, [isTxSuccess, proposeTxHash, onSuccess, onClose])
+  }, [isTxSuccess, proposeTxHash, onSuccess, onClose, governorAddress, txReceiptData])
 
   const closeError = () => setShowError(false)
 
