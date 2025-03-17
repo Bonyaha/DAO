@@ -116,12 +116,12 @@ const ProposalList = () => {
 					functionName: 'proposalVotes',
 					args: [proposalId],
 				})
-				//const [title, desc] = description.split('#').map((s) => s.trim())
+				const [title, desc] = description.split(':').map((s) => s.trim())
 
 				return {
 					id: proposalId,
-					title: 'Untitled Proposal',
-					description: description,
+					title,
+					desc,
 					state: Number(state),
 					forVotes: ethers.formatEther(proposalVotes[1]),
 					againstVotes: ethers.formatEther(proposalVotes[0]),

@@ -20,7 +20,7 @@ async function main() {
 	console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
 	console.log(`Using box address: ${BOX_ADDRESS}`)
 
-	const value = process.env.PROPOSAL_VALUE || 42
+	const value = config.proposalValue.value || 42
 	console.log(`Number of proposals: ${await governor.getNumberOfProposals()}`)
 	const description = `Proposal #${await governor.getNumberOfProposals()}: Store ${value} in Box`
 	console.log(`Proposal description: ${description}`)

@@ -180,10 +180,11 @@ const ProposalList = () => {
 					}
 				}
 
+				const [title, desc] = description.split(':').map((s) => s.trim())
 				return {
 					id: proposalId,
-					title: 'Untitled Proposal',
-					description: description,
+					title,
+					description: desc,
 					state: Number(state),
 					forVotes: ethers.formatEther(proposalVotes[1]),
 					againstVotes: ethers.formatEther(proposalVotes[0]),
