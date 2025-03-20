@@ -3,7 +3,7 @@ const fs = require("fs")
 const path = require("path")
 
 async function main() {
-	const [deployer, voter1, voter2,voter3,voter4,voter5] = await ethers.getSigners()
+	const [deployer, voter1, voter2, voter3, voter4, voter5] = await ethers.getSigners()
 	console.log("Deploying contracts with the account:", deployer.address)
 	console.log("Additional voters:", voter1.address, voter2.address)
 
@@ -14,7 +14,7 @@ async function main() {
 	await governanceToken.waitForDeployment()
 	console.log("GovernanceToken deployed to:", governanceToken.target)
 
-	
+
 
 	// Deploy Timelock
 	console.log("Deploying TimelockController...")
@@ -53,8 +53,8 @@ async function main() {
 	await box.waitForDeployment()
 	console.log("Box deployed to:", box.target)
 
-	// Setup three eligible voters by distributing and delegating tokens
-	console.log("Setting up three eligible voters...")
+	// Setup eligible voters by distributing and delegating tokens
+	console.log("Setting up eligible voters...")
 
 	// Deployer already has tokens, just delegate to self to get voting power
 	const delegateTx = await governanceToken.delegate(deployer.address)
@@ -68,34 +68,13 @@ async function main() {
 		await governanceToken.connect(voter).claimTokens()
 	}
 
-// Delegate votes and wait for a block to ensure checkpoint is created
+	// Delegate votes and wait for a block to ensure checkpoint is created
 
-			for (const voter of voters) {
-				await governanceToken.connect(voter).delegate(voter.address)
-				await network.provider.send("evm_mine")
-			}
-			console.log("Voters delegated to themselves")
-	/* // Transfer tokens to voter1 and have them delegate to themselves
-	const claimTx1 = await governanceToken.connect(voter1).claimTokens()
-	await claimTx1.wait()
-	console.log("Transferred tokens to voter1")
-
-	// Connect as voter1 and delegate
-	const voter1Token = governanceToken.connect(voter1)
-	const delegate1Tx = await voter1Token.delegate(voter1.address)
-	await delegate1Tx.wait()
-	console.log("Voter1 delegated to self")
-
-	// Transfer tokens to voter2 and have them delegate to themselves
-	const claimTx2 = await governanceToken.connect(voter2).claimTokens()
-	await claimTx2.wait()
-	console.log("Transferred tokens to voter2")
-
-	// Connect as voter2 and delegate
-	const voter2Token = governanceToken.connect(voter2)
-	const delegate2Tx = await voter2Token.delegate(voter2.address)
-	await delegate2Tx.wait()
-	console.log("Voter2 delegated to self") */
+	for (const voter of voters) {
+		await governanceToken.connect(voter).delegate(voter.address)
+		await network.provider.send("evm_mine")
+	}
+	console.log("Voters delegated to themselves")
 
 	// Setup roles
 	console.log("Setting up roles...")

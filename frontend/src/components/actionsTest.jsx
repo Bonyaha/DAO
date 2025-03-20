@@ -5,7 +5,7 @@ import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import addresses from '../addresses.json'
 import ProposalForm from './ProposalForm'
-import ProposalList from './ProposalListTest'
+import ProposalList from './lists'
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
@@ -14,13 +14,16 @@ function ActionButtons() {
 	const [tokenAddress, setTokenAddress] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [isClaimLoading, setIsClaimLoading] = useState(false)
+	const [isDelegating, setIsDelegating] = useState(false)
 	const [, setCurrentNetwork] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
 	const [showError, setShowError] = useState(false)
 	const [showProposalForm, setShowProposalForm] = useState(false)
 	const [showProposalList, setShowProposalList] = useState(false)
+	const [hasClaimedTokens, setHasClaimedTokens] = useState(false)
+	const [hasVotingPower, setHasVotingPower] = useState(false)
 
-	const { chain } = useAccount()
+	const { chain, address } = useAccount()
 
 	// Initialize network and contract addresses using Wagmi
 	useEffect(() => {
@@ -50,14 +53,55 @@ function ActionButtons() {
 		enabled: false,
 	})
 
+	// Check if the user has already claimed tokens using s_claimedTokens mapping
+	const { data: hasClaimedData, refetch: refetchHasClaimed } = useReadContract({
+		address: tokenAddress,
+		abi: GovernanceToken.abi,
+		functionName: 's_claimedTokens',
+		args: [address],
+		enabled: !!tokenAddress && !!address,
+	})
+
+	// Check if user has voting power
+	const { data: votingPowerData, refetch: refetchVotingPower } = useReadContract({
+		address: tokenAddress,
+		abi: GovernanceToken.abi,
+		functionName: 'getVotes',
+		args: [address],
+		enabled: !!tokenAddress && !!address,
+	})
+
+	// Update claim status whenever address or token address changes
+	useEffect(() => {
+		if (tokenAddress && address) {
+			refetchHasClaimed().then(() => {
+				if (hasClaimedData !== undefined) {
+					setHasClaimedTokens(hasClaimedData)
+				}
+			})
+			refetchVotingPower().then(() => {
+				if (votingPowerData !== undefined) {
+					setHasVotingPower(votingPowerData > 0)
+				}
+			})
+		}
+	}, [tokenAddress, address, hasClaimedData, refetchHasClaimed, votingPowerData, refetchVotingPower])
+
 	// Contract writes with error handling
 	const { writeContract, data: claimTxHash, isPending, error: writeError } = useWriteContract()
+	const { writeContract: writeDelegation, data: delegateTxHash, isPending: isDelegatePending, error: delegateError } = useWriteContract()
 
 	// Track transaction status
 	const { isLoading: isTxLoading, isSuccess: isTxSuccess, error: txError } =
 		useWaitForTransactionReceipt({
 			hash: claimTxHash,
 			enabled: !!claimTxHash,
+		})
+
+	const { isLoading: isDelegateTxLoading, isSuccess: isDelegateTxSuccess, error: delegateTxError } =
+		useWaitForTransactionReceipt({
+			hash: delegateTxHash,
+			enabled: !!delegateTxHash,
 		})
 
 	// Handle errors from contract interactions
@@ -79,6 +123,7 @@ function ActionButtons() {
 				if (revertedError && revertedError.reason === 'Internal JSON-RPC error.') {
 					console.log('revertedError:', revertedError.reason)
 					message = "Already claimed tokens"
+					setHasClaimedTokens(true)
 				}
 			} else if (writeError.message && writeError.message.includes('reverted')) {
 				// Fallback to regex if not a BaseError
@@ -98,6 +143,14 @@ function ActionButtons() {
 			setIsClaimLoading(false)
 		}
 
+		// Handle delegation errors
+		if (delegateError) {
+			console.error('Delegation error:', delegateError)
+			setErrorMessage('Failed to delegate voting power')
+			setShowError(true)
+			setIsDelegating(false)
+		}
+
 		// Handle transaction errors
 		if (txError) {
 			console.error('Transaction error:', txError)
@@ -105,7 +158,14 @@ function ActionButtons() {
 			setShowError(true)
 			setIsClaimLoading(false)
 		}
-	}, [writeError, txError, isPending, isClaimLoading])
+		if (delegateTxError) {
+			console.error('Delegation transaction error:', delegateTxError)
+			setErrorMessage('Delegation transaction failed')
+			setShowError(true)
+			setIsDelegating(false)
+		}
+
+	}, [writeError, txError, delegateError, delegateTxError, isPending, isClaimLoading])
 
 	// Add token to MetaMask using wagmi/viem approach
 	const addTokenToMetamask = useCallback(async () => {
@@ -119,9 +179,7 @@ function ActionButtons() {
 					options: {
 						address: tokenAddress,
 						symbol: 'MTK',
-						decimals: 18,
-						// Optional: Add your token image if you have one
-						// image: 'https://yourwebsite.com/token-logo.png',
+						decimals: 18
 					},
 				},
 			})
@@ -155,6 +213,31 @@ function ActionButtons() {
 		}
 	}
 
+	// Delegate voting power to self
+	const delegateVotingPower = async () => {
+		if (!tokenAddress || !address) {
+			setErrorMessage('Address not set')
+			setShowError(true)
+			return
+		}
+
+		try {
+			setIsDelegating(true)
+
+			writeDelegation({
+				address: tokenAddress,
+				abi: GovernanceToken.abi,
+				functionName: 'delegate',
+				args: [address], // Delegate to self
+			})
+		} catch (error) {
+			console.error('Error delegating tokens:', error)
+			setIsDelegating(false)
+			setErrorMessage('Error delegating tokens')
+			setShowError(true)
+		}
+	}
+
 	// Handle Get Funds button click
 	const handleGetFunds = async () => {
 		if (!tokenAddress) {
@@ -176,7 +259,7 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error claiming tokens:', error)
 			setIsClaimLoading(false)
-			setErrorMessage('Failed MTF')
+			setErrorMessage('Error claiming tokens:', error)
 			setShowError(true)
 		}
 	}
@@ -201,10 +284,22 @@ function ActionButtons() {
 	useEffect(() => {
 		if (isTxSuccess) {
 			setIsClaimLoading(false)
+			setHasClaimedTokens(true)
 			// Prompt to add token to MetaMask after successful claim
 			addTokenToMetamask()
+			// Automatically trigger delegation after successful claim
+			delegateVotingPower()
 		}
 	}, [isTxSuccess, addTokenToMetamask])
+
+	// Effect to handle successful delegation
+	useEffect(() => {
+		if (isDelegateTxSuccess) {
+			setIsDelegating(false)
+			setHasVotingPower(true)
+			refetchVotingPower()
+		}
+	}, [isDelegateTxSuccess, refetchVotingPower])
 
 	// Determine button text states
 	const valueButtonText = isLoading ? 'LOADING...' :
@@ -212,7 +307,11 @@ function ActionButtons() {
 			`Value: ${displayValue}` : 'CURRENT VALUE'
 
 	const fundButtonText = isClaimLoading || isPending || isTxLoading ?
-		'CLAIMING...' : 'GET FUNDS'
+		'CLAIMING...' : hasClaimedTokens ? 'ALREADY CLAIMED' : 'GET FUNDS'
+	const delegateButtonText = isDelegating || isDelegatePending || isDelegateTxLoading ?
+		'DELEGATING...' : hasVotingPower ? 'VOTING POWER ACTIVE' : 'ACTIVATE VOTING'
+
+
 	const toggleProposalList = () => {
 		setShowProposalList(!showProposalList)
 	}
@@ -245,10 +344,17 @@ function ActionButtons() {
 					</button>
 					<button
 						onClick={handleGetFunds}
-						disabled={isClaimLoading || isPending || isTxLoading}
-						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow disabled:opacity-50"
+						disabled={isClaimLoading || isPending || isTxLoading || hasClaimedTokens}
+						className={`${hasClaimedTokens ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
 					>
 						{fundButtonText}
+					</button>
+					<button
+						onClick={delegateVotingPower}
+						disabled={isDelegating || isDelegatePending || isDelegateTxLoading || hasVotingPower || !hasClaimedTokens}
+						className={`${hasVotingPower ? 'bg-gray-500' : !hasClaimedTokens ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
+					>
+						{delegateButtonText}
 					</button>
 					<button
 						onClick={addTokenToMetamask}
