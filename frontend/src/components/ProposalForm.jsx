@@ -1,9 +1,9 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from 'react'
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
-import { BaseError, encodeFunctionData, decodeEventLog, decodeFunctionData } from 'viem'
+import { BaseError, encodeFunctionData, decodeEventLog } from 'viem'
+import { ethers } from 'ethers'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
-import Box from '../artifacts/contracts/Box.sol/Box.json'
 import addresses from '../addresses.json'
 
 function ProposalForm({ onClose, onSuccess }) {
@@ -132,23 +132,27 @@ function ProposalForm({ onClose, onSuccess }) {
             data: log.data,
             topics: log.topics,
           })
-          console.log('decodedLog:', decodedLog)
-
           const proposalId = decodedLog.args.proposalId
-          console.log('Proposal ID:', proposalId.toString())
+          const targets = decodedLog.args.targets
+          const values = decodedLog.args.values
+          const calldatas = decodedLog.args.calldatas
 
-          // Decode the calldata to extract the targetValue
-          const calldata = decodedLog.args.calldatas[0]
-          const decodedCalldata = decodeFunctionData({
-            abi: Box.abi,
-            data: calldata,
-          })
-          const newValue = decodedCalldata.args[0]
-          console.log('Proposed new value:', newValue.toString())
+          const [title, desc] = description.split(':').map((s) => s.trim())
+
+          const newProposal = {
+            id: proposalId,
+            title,
+            description: desc,
+            state: 0, // Initial state is Pending (0)
+            targets,
+            values,
+            calldatas,
+            descriptionHash: ethers.id(description)
+          };
 
 
           setIsSubmitting(false)
-          if (onSuccess) onSuccess()
+          if (onSuccess) onSuccess(newProposal)
           if (onClose) onClose()
         } catch (error) {
           console.error('Error getting proposal ID:', error)
@@ -158,7 +162,7 @@ function ProposalForm({ onClose, onSuccess }) {
 
       getProposalId()
     }
-  }, [isTxSuccess, proposeTxHash, onSuccess, onClose, governorAddress, txReceiptData])
+  }, [isTxSuccess, proposeTxHash, onSuccess, onClose, governorAddress, txReceiptData, description])
 
   const closeError = () => setShowError(false)
 

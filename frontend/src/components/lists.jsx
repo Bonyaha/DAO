@@ -124,7 +124,7 @@ const ProposalList = () => {
 	}, [proposalCount])
 
 	// Format remaining time for display
-	const formatRemainingTime = (endTime, currentTime) => {
+	/* const formatRemainingTime = (endTime, currentTime) => {
 		const remainingSeconds = endTime - currentTime
 		if (remainingSeconds <= 0) return 'Ready to execute'
 		const days = Math.floor(remainingSeconds / 86400)
@@ -133,7 +133,7 @@ const ProposalList = () => {
 		const seconds = remainingSeconds % 60
 		return `${days > 0 ? `${days}d ` : ''}${hours > 0 ? `${hours}h ` : ''}${minutes > 0 ? `${minutes}m ` : ''}${seconds}s`
 	}
-
+ */
 	const formatTimelockPeriod = (seconds) => {
 		const days = Math.floor(seconds / 86400)
 		const hours = Math.floor((seconds % 86400) / 3600)
