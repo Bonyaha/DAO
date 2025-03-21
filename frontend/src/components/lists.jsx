@@ -156,7 +156,7 @@ const ProposalList = () => {
 
 	// Fetch proposal events using Wagmi's publicClient
 	const fetchProposalEvents = useCallback(async () => {
-		console.log('Starting fetchProposalEvents')
+		//console.log('Starting fetchProposalEvents')
 		if (!publicClient) {
 			console.error('Public client is not available')
 			return
@@ -235,15 +235,15 @@ const ProposalList = () => {
 			})
 
 			const proposalData = await Promise.all(proposalPromises)
-			console.log('Fetched proposal data:', proposalData)
+			//console.log('Fetched proposal data:', proposalData)
 			setProposals(proposalData)
-			console.log('Proposals state updated with:', proposalData)
+			//console.log('Proposals state updated with:', proposalData)
 
 		} catch (error) {
 			console.error('Error fetching proposals:', error)
 		} finally {
 			setIsLoading(false)
-			console.log('Finished fetchProposalEvents')
+			//console.log('Finished fetchProposalEvents')
 		}
 	}, [governorAddress, page, publicClient])
 
@@ -280,7 +280,7 @@ const ProposalList = () => {
 						if (newState !== proposal.state) {
 							proposalsToCheck[i] = { ...proposal, state: newState }
 							hasUpdates = true
-							console.log(`Proposal ${proposal.id} state updated: ${ProposalStatusMap[proposal.state]} -> ${ProposalStatusMap[newState]}`)
+							//console.log(`Proposal ${proposal.id} state updated: ${ProposalStatusMap[proposal.state]} -> ${ProposalStatusMap[newState]}`)
 						}
 					} catch (error) {
 						console.error(`Error checking proposal ${proposal.id} state:`, error)
@@ -316,7 +316,7 @@ const ProposalList = () => {
 		abi: MyGovernor.abi,
 		eventName: 'VoteCast',
 		onLogs(logs) {
-			console.log('VoteCast event detected:', logs)
+			//console.log('VoteCast event detected:', logs)
 			updateCurrentTime()
 			fetchProposalEvents()
 		},
@@ -358,13 +358,13 @@ const ProposalList = () => {
 	// useEffect to handle executionHash updates
 	useEffect(() => {
 		if (executionHash) {
-			console.log('Transaction hash:', executionHash)
+			//console.log('Transaction hash:', executionHash)
 
 			const waitForReceipt = async () => {
 				try {
 					const receipt = await publicClient.waitForTransactionReceipt({ hash: executionHash })
 					if (receipt.status === 'success') {
-						console.log('Proposal executed successfully')
+						//console.log('Proposal executed successfully')
 						updateCurrentTime()
 						fetchProposalEvents()
 					} else {
@@ -390,7 +390,7 @@ const ProposalList = () => {
 
 			// Force a refresh after vote is sent
 			setTimeout(() => {
-				console.log('Vote cast, refreshing proposal data...')
+				//console.log('Vote cast, refreshing proposal data...')
 				updateCurrentTime()
 				fetchProposalEvents()
 			}, 1000)
@@ -411,7 +411,7 @@ const ProposalList = () => {
 
 			// Force a refresh after queue transaction is sent
 			setTimeout(() => {
-				console.log('Proposal queued, refreshing data...')
+				//console.log('Proposal queued, refreshing data...')
 				updateCurrentTime()
 				fetchProposalEvents()
 			}, 1000)
@@ -454,7 +454,7 @@ const ProposalList = () => {
 
 			// Force a refresh after execution transaction is sent
 			setTimeout(() => {
-				console.log('Proposal execution submitted, refreshing data...')
+				//console.log('Proposal execution submitted, refreshing data...')
 				updateCurrentTime()
 				fetchProposalEvents()
 			}, 1000)
@@ -480,7 +480,7 @@ const ProposalList = () => {
 		if (!chain || !governorAddress) return
 
 		const pollingInterval = setInterval(() => {
-			console.log("Polling for proposal status updates")
+			//console.log("Polling for proposal status updates")
 			fetchProposalEvents()
 		}, 5000) // Poll every 5 seconds on Sepolia
 
@@ -499,7 +499,7 @@ const ProposalList = () => {
 		)
 	}
 
-	console.log('Rendering ProposalList with proposals:', proposals)
+	//console.log('Rendering ProposalList with proposals:', proposals)
 	return (
 		<div className="mt-8">
 			<h2 className="text-2xl font-bold mb-4">Proposals</h2>

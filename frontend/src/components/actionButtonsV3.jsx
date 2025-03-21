@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt} from 'wagmi'
+import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { BaseError, ContractFunctionRevertedError } from 'viem'
 
 import Box from '../artifacts/contracts/Box.sol/Box.json'
@@ -79,16 +79,16 @@ function ActionButtons() {
 	})
 
 	// Fetch the latest proposal
-	
 
-/* 	// Fetch latest proposal when governor address is set
-	useEffect(() => {
-		if (governorAddress && publicClient) {
-			fetchLatestProposal()
-		}
-	}, [governorAddress, publicClient, fetchLatestProposal]) */
 
-	
+	/* 	// Fetch latest proposal when governor address is set
+		useEffect(() => {
+			if (governorAddress && publicClient) {
+				fetchLatestProposal()
+			}
+		}, [governorAddress, publicClient, fetchLatestProposal]) */
+
+
 
 	// Update claim status whenever address or token address changes
 	useEffect(() => {
@@ -316,10 +316,10 @@ function ActionButtons() {
 			setErrorMessage('')
 			setShowError(false)
 
-// Convert calldatas to an array if it's a string
-    const calldata = Array.isArray(latestProposal.calldatas) 
-      ? latestProposal.calldatas 
-      : [latestProposal.calldatas]; // Wrap in array if it's a string
+			// Convert calldatas to an array if it's a string
+			const calldata = Array.isArray(latestProposal.calldatas)
+				? latestProposal.calldatas
+				: [latestProposal.calldatas] // Wrap in array if it's a string
 
 
 
@@ -351,7 +351,7 @@ function ActionButtons() {
 	const handleProposalSuccess = (newProposal) => {
 		console.log('Proposal submitted successfully!', newProposal)
 		setLatestProposal(newProposal)
-		
+
 	}
 
 	// Close error message
@@ -382,8 +382,11 @@ function ActionButtons() {
 
 	// Effect to handle successful cancel
 	useEffect(() => {
+console.log("isCancelTxSuccess", isCancelTxSuccess);
+
 		if (isCancelTxSuccess) {
-			setIsCanceling(false)			
+			setIsCanceling(false)
+			setLatestProposal(null)
 		}
 	}, [isCancelTxSuccess])
 
@@ -446,7 +449,7 @@ function ActionButtons() {
 					>
 						{delegateButtonText}
 					</button>
-					
+
 					<button
 						onClick={handlePropose}
 						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
