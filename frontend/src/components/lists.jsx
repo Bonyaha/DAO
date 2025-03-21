@@ -316,7 +316,7 @@ const ProposalList = () => {
 		abi: MyGovernor.abi,
 		eventName: 'VoteCast',
 		onLogs(logs) {
-			//console.log('VoteCast event detected:', logs)
+			console.log('VoteCast event detected:', logs)
 			updateCurrentTime()
 			fetchProposalEvents()
 		},
