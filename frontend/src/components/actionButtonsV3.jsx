@@ -253,7 +253,7 @@ function ActionButtons() {
 	}
 
 	// Delegate voting power to self
-	const delegateVotingPower = async () => {
+	const delegateVotingPower = useCallback(async () => {
 		if (!tokenAddress || !address) {
 			setErrorMessage('Address not set')
 			setShowError(true)
@@ -275,7 +275,7 @@ function ActionButtons() {
 			setErrorMessage('Error delegating tokens')
 			setShowError(true)
 		}
-	}
+	}, [tokenAddress, address, writeDelegation, setErrorMessage, setShowError, setIsDelegating]);
 
 	// Handle Get Funds button click
 	const handleGetFunds = async () => {
@@ -369,7 +369,7 @@ function ActionButtons() {
 			// Automatically trigger delegation after successful claim
 			delegateVotingPower()
 		}
-	}, [isTxSuccess, addTokenToMetamask])
+	}, [isTxSuccess, addTokenToMetamask, delegateVotingPower])
 
 	// Effect to handle successful delegation
 	useEffect(() => {
@@ -382,7 +382,7 @@ function ActionButtons() {
 
 	// Effect to handle successful cancel
 	useEffect(() => {
-console.log("isCancelTxSuccess", isCancelTxSuccess);
+		//console.log("isCancelTxSuccess", isCancelTxSuccess);
 
 		if (isCancelTxSuccess) {
 			setIsCanceling(false)
