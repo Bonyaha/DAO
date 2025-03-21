@@ -446,12 +446,7 @@ function ActionButtons() {
 					>
 						{delegateButtonText}
 					</button>
-					<button
-						onClick={addTokenToMetamask}
-						className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow ml-2"
-					>
-						ADD TOKEN TO WALLET
-					</button>
+					
 					<button
 						onClick={handlePropose}
 						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"

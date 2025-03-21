@@ -482,7 +482,7 @@ const ProposalList = () => {
 		const pollingInterval = setInterval(() => {
 			console.log("Polling for proposal status updates")
 			fetchProposalEvents()
-		}, 30000) // Poll every 30 seconds on Sepolia
+		}, 5000) // Poll every 5 seconds on Sepolia
 
 		return () => clearInterval(pollingInterval)
 	}, [chain, governorAddress, fetchProposalEvents])
