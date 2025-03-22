@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
+import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
 import { BaseError, ContractFunctionRevertedError } from 'viem'
+
 import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
+import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import addresses from '../addresses.json'
 import ProposalForm from './ProposalForm'
 import ProposalList from './lists'
@@ -12,18 +14,22 @@ function ActionButtons() {
 	const [showValueInButton, setShowValueInButton] = useState(false)
 	const [boxAddress, setBoxAddress] = useState('')
 	const [tokenAddress, setTokenAddress] = useState('')
+	const [governorAddress, setGovernorAddress] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [isClaimLoading, setIsClaimLoading] = useState(false)
 	const [isDelegating, setIsDelegating] = useState(false)
-	const [, setCurrentNetwork] = useState('')
+	const [currentNetwork, setCurrentNetwork] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
 	const [showError, setShowError] = useState(false)
 	const [showProposalForm, setShowProposalForm] = useState(false)
 	const [showProposalList, setShowProposalList] = useState(false)
 	const [hasClaimedTokens, setHasClaimedTokens] = useState(false)
 	const [hasVotingPower, setHasVotingPower] = useState(false)
+	const [latestProposal, setLatestProposal] = useState(null)
+	const [isCanceling, setIsCanceling] = useState(false)
 
 	const { chain, address } = useAccount()
+	const publicClient = usePublicClient()
 
 	// Initialize network and contract addresses using Wagmi
 	useEffect(() => {
@@ -38,6 +44,7 @@ function ActionButtons() {
 			if (addresses[network]) {
 				setBoxAddress(addresses[network].box.address)
 				setTokenAddress(addresses[network].governanceToken.address)
+				setGovernorAddress(addresses[network].governor.address)
 			} else {
 				console.error(`Network ${network} not found in addresses.json`)
 			}
@@ -87,9 +94,36 @@ function ActionButtons() {
 		}
 	}, [tokenAddress, address, hasClaimedData, refetchHasClaimed, votingPowerData, refetchVotingPower])
 
+	// Periodically update the state of latestProposal
+	useEffect(() => {
+		const updateProposalState = async () => {
+			if (latestProposal && governorAddress && publicClient) {
+				try {
+					const state = await publicClient.readContract({
+						address: governorAddress,
+						abi: MyGovernor.abi,
+						functionName: 'state',
+						args: [latestProposal.id],
+					})
+					setLatestProposal(prev => ({ ...prev, state: Number(state) }))
+				} catch (error) {
+					console.error('Error updating proposal state:', error)
+				}
+			}
+		}
+
+		// Run immediately when dependencies change
+		updateProposalState()
+
+		const pollingInterval = currentNetwork === 'localhost' ? 5000 : 30000
+		const interval = setInterval(updateProposalState, pollingInterval)
+		return () => clearInterval(interval)
+	}, [latestProposal, governorAddress, publicClient, currentNetwork])
+
 	// Contract writes with error handling
 	const { writeContract, data: claimTxHash, isPending, error: writeError } = useWriteContract()
 	const { writeContract: writeDelegation, data: delegateTxHash, isPending: isDelegatePending, error: delegateError } = useWriteContract()
+	const { writeContract: cancelProposal, data: cancelTxHash, isPending: isCancelPending, error: cancelError } = useWriteContract()
 
 	// Track transaction status
 	const { isLoading: isTxLoading, isSuccess: isTxSuccess, error: txError } =
@@ -104,20 +138,24 @@ function ActionButtons() {
 			enabled: !!delegateTxHash,
 		})
 
+	const { isLoading: isCancelTxLoading, isSuccess: isCancelTxSuccess, error: cancelTxError } =
+		useWaitForTransactionReceipt({
+			hash: cancelTxHash,
+			enabled: !!cancelTxHash,
+		})
+
 	// Handle errors from contract interactions
 	useEffect(() => {
 		// Clear error when starting new transaction
-		if (isPending || isClaimLoading) {
+		if (isPending || isClaimLoading || isCancelPending || isCanceling) {
 			setErrorMessage('')
 			setShowError(false)
 		}
 
 		// Handle write contract errors
 		if (writeError) {
-			//console.error('Write contract error:', writeError)
 			let message = 'Failed to claim tokens'
 
-			// Check if writeError is a BaseError and extract the revert reason
 			if (writeError instanceof BaseError) {
 				const revertedError = writeError.walk(err => err instanceof ContractFunctionRevertedError)
 				if (revertedError && revertedError.reason === 'Internal JSON-RPC error.') {
@@ -126,14 +164,12 @@ function ActionButtons() {
 					setHasClaimedTokens(true)
 				}
 			} else if (writeError.message && writeError.message.includes('reverted')) {
-				// Fallback to regex if not a BaseError
 				console.error('Unexpected error type:', writeError)
 				const match = writeError.message.match(/reverted with reason string '(.+)'/)
 				if (match && match[1]) {
 					message = match[1]
 				}
 			} else {
-				// Fallback for unexpected error types
 				console.error('Unexpected error type:', writeError)
 				message = 'An unknown error occurred'
 			}
@@ -151,6 +187,14 @@ function ActionButtons() {
 			setIsDelegating(false)
 		}
 
+		// Handle cancel proposal errors
+		if (cancelError) {
+			console.error('Cancel proposal error:', cancelError)
+			setErrorMessage('Failed to cancel proposal')
+			setShowError(true)
+			setIsCanceling(false)
+		}
+
 		// Handle transaction errors
 		if (txError) {
 			console.error('Transaction error:', txError)
@@ -164,8 +208,13 @@ function ActionButtons() {
 			setShowError(true)
 			setIsDelegating(false)
 		}
-
-	}, [writeError, txError, delegateError, delegateTxError, isPending, isClaimLoading])
+		if (cancelTxError) {
+			console.error('Cancel transaction error:', cancelTxError)
+			setErrorMessage('Cancel transaction failed')
+			setShowError(true)
+			setIsCanceling(false)
+		}
+	}, [writeError, txError, delegateError, delegateTxError, cancelError, cancelTxError, isPending, isClaimLoading, isCancelPending, isCanceling])
 
 	// Add token to MetaMask using wagmi/viem approach
 	const addTokenToMetamask = useCallback(async () => {
@@ -214,7 +263,7 @@ function ActionButtons() {
 	}
 
 	// Delegate voting power to self
-	const delegateVotingPower = async () => {
+	const delegateVotingPower = useCallback(async () => {
 		if (!tokenAddress || !address) {
 			setErrorMessage('Address not set')
 			setShowError(true)
@@ -236,7 +285,7 @@ function ActionButtons() {
 			setErrorMessage('Error delegating tokens')
 			setShowError(true)
 		}
-	}
+	}, [tokenAddress, address, writeDelegation])
 
 	// Handle Get Funds button click
 	const handleGetFunds = async () => {
@@ -264,15 +313,52 @@ function ActionButtons() {
 		}
 	}
 
+	// Handle Cancel Proposal button click
+	const handleCancelProposal = async () => {
+		if (!governorAddress || !latestProposal) {
+			setErrorMessage('No proposal to cancel')
+			setShowError(true)
+			return
+		}
+
+		try {
+			setIsCanceling(true)
+			setErrorMessage('')
+			setShowError(false)
+
+			// Convert calldatas to an array if it's a string
+			const calldata = Array.isArray(latestProposal.calldatas)
+				? latestProposal.calldatas
+				: [latestProposal.calldatas] // Wrap in array if it's a string
+
+			cancelProposal({
+				address: governorAddress,
+				abi: MyGovernor.abi,
+				functionName: 'cancel',
+				args: [
+					latestProposal.targets,
+					latestProposal.values,
+					calldata,
+					latestProposal.descriptionHash
+				],
+			})
+		} catch (error) {
+			console.error('Error canceling proposal:', error)
+			setIsCanceling(false)
+			setErrorMessage('Error canceling proposal')
+			setShowError(true)
+		}
+	}
+
 	// Handle Propose button click
 	const handlePropose = () => {
 		setShowProposalForm(true)
 	}
 
 	// Handle proposal success
-	const handleProposalSuccess = () => {
-		// You can refresh proposals or show a success message
-		console.log('Proposal submitted successfully!')
+	const handleProposalSuccess = (newProposal) => {
+		console.log('Proposal submitted successfully!', newProposal)
+		setLatestProposal(newProposal)
 	}
 
 	// Close error message
@@ -290,7 +376,7 @@ function ActionButtons() {
 			// Automatically trigger delegation after successful claim
 			delegateVotingPower()
 		}
-	}, [isTxSuccess, addTokenToMetamask])
+	}, [isTxSuccess, addTokenToMetamask, delegateVotingPower])
 
 	// Effect to handle successful delegation
 	useEffect(() => {
@@ -301,6 +387,16 @@ function ActionButtons() {
 		}
 	}, [isDelegateTxSuccess, refetchVotingPower])
 
+	// Effect to handle successful cancel
+	useEffect(() => {
+		console.log("isCancelTxSuccess", isCancelTxSuccess)
+
+		if (isCancelTxSuccess) {
+			setIsCanceling(false)
+			setLatestProposal(null)
+		}
+	}, [isCancelTxSuccess])
+
 	// Determine button text states
 	const valueButtonText = isLoading ? 'LOADING...' :
 		(showValueInButton && displayValue !== null) ?
@@ -310,7 +406,11 @@ function ActionButtons() {
 		'CLAIMING...' : hasClaimedTokens ? 'ALREADY CLAIMED' : 'GET FUNDS'
 	const delegateButtonText = isDelegating || isDelegatePending || isDelegateTxLoading ?
 		'DELEGATING...' : hasVotingPower ? 'VOTING POWER ACTIVE' : 'ACTIVATE VOTING'
+	const cancelButtonText = isCanceling || isCancelPending || isCancelTxLoading ?
+		'CANCELING...' : 'CANCEL PROPOSAL'
 
+	// Determine if the cancel button should be enabled
+	const canCancelProposal = latestProposal !== null && latestProposal.state === 0 // 0 is Pending
 
 	const toggleProposalList = () => {
 		setShowProposalList(!showProposalList)
@@ -356,17 +456,20 @@ function ActionButtons() {
 					>
 						{delegateButtonText}
 					</button>
-					<button
-						onClick={addTokenToMetamask}
-						className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow ml-2"
-					>
-						ADD TOKEN TO WALLET
-					</button>
+
 					<button
 						onClick={handlePropose}
 						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
 					>
 						PROPOSE
+					</button>
+					<button
+						onClick={handleCancelProposal}
+						disabled={!canCancelProposal || isCanceling || isCancelPending || isCancelTxLoading}
+						className={`${canCancelProposal ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
+						title={!canCancelProposal ? 'No pending proposal to cancel' : ''}
+					>
+						{cancelButtonText}
 					</button>
 					<button
 						onClick={toggleProposalList}

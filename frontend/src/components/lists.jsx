@@ -280,7 +280,7 @@ const ProposalList = () => {
 						if (newState !== proposal.state) {
 							proposalsToCheck[i] = { ...proposal, state: newState }
 							hasUpdates = true
-							//console.log(`Proposal ${proposal.id} state updated: ${ProposalStatusMap[proposal.state]} -> ${ProposalStatusMap[newState]}`)
+							console.log(`Proposal ${proposal.id} state updated: ${ProposalStatusMap[proposal.state]} -> ${ProposalStatusMap[newState]}`)
 						}
 					} catch (error) {
 						console.error(`Error checking proposal ${proposal.id} state:`, error)

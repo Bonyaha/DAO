@@ -382,7 +382,7 @@ function ActionButtons() {
 
 	// Effect to handle successful cancel
 	useEffect(() => {
-		//console.log("isCancelTxSuccess", isCancelTxSuccess);
+		console.log("isCancelTxSuccess", isCancelTxSuccess);
 
 		if (isCancelTxSuccess) {
 			setIsCanceling(false)
