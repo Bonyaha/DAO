@@ -4,7 +4,9 @@ import { ethers } from 'ethers'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import addresses from '../addresses.json'
-import ProposalTimingButton from './ProposalTimingButton';
+import ProposalTimingButton from './ProposalTimingButton'
+import { TimingProvider } from './TimingContext';
+import { useTiming } from './hooks/useTiming'
 
 const ProposalStatusMap = {
 	0: 'Pending',
@@ -19,13 +21,14 @@ const ProposalStatusMap = {
 
 const PROPOSALS_PER_PAGE = 5
 
-const ProposalList = () => {
+const ProposalListContent = () => {
 	const [proposals, setProposals] = useState([])
+	const [currentNetwork, setCurrentNetwork] = useState('')
 	const [isLoading, setIsLoading] = useState(true)
 	const [page, setPage] = useState(0)
 	const [totalProposals, setTotalProposals] = useState(0)
 	const [governorAddress, setGovernorAddress] = useState('')
-	const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000))
+	const { currentTime, canExecuteProposal } = useTiming();
 	const [timelockPeriod, setTimelockPeriod] = useState(0) // Store timelock period in seconds
 	const [votingPower, setVotingPower] = useState(0)
 	const [tokenAddress, setTokenAddress] = useState('')
@@ -35,10 +38,10 @@ const ProposalList = () => {
 	const publicClient = usePublicClient()
 
 	// Function to update current time when needed
-	const updateCurrentTime = () => {
+/* 	const updateCurrentTime = () => {
 		setCurrentTime(Math.floor(Date.now() / 1000))
 	}
-
+ */
 	// Initialize network and contract addresses using Wagmi
 	useEffect(() => {
 		const initializeNetwork = async () => {
@@ -48,19 +51,20 @@ const ProposalList = () => {
 			}
 
 			// Map chain ID to network name (e.g., 31337 for localhost)
-			const currentNetwork = chain.id === 31337 ? 'localhost' : chain.name.toLowerCase()
+			const network = chain.id === 31337 ? 'localhost' : chain.name.toLowerCase()
+			setCurrentNetwork(network)
 
-			if (addresses[currentNetwork]) {
-				setGovernorAddress(addresses[currentNetwork].governor.address)
-				setTokenAddress(addresses[currentNetwork].governanceToken.address)
+			if (addresses[network]) {
+				setGovernorAddress(addresses[network].governor.address)
+				setTokenAddress(addresses[network].governanceToken.address)
 			} else {
-				console.error(`Network ${currentNetwork} not found in addresses.json`)
+				console.error(`Network ${network} not found in addresses.json`)
 			}
 		}
 
 		initializeNetwork()
 		// Initialize current time once on component mount
-		updateCurrentTime()
+		//updateCurrentTime()
 	}, [chain])
 
 	// Get total proposal count from contract
@@ -142,15 +146,16 @@ const ProposalList = () => {
 	}
 
 	// Check if a proposal can be executed (timelock period has passed)
-	const canExecuteProposal = (eta, currentTime) => {
+	/* const canExecuteProposal = (eta, currentTime) => {
 		return currentTime >= eta
-	}
+		//return true
+	} */
 
 	// Update time periodically but less frequently
 	useEffect(() => {
 		const interval = setInterval(() => {
-			updateCurrentTime()
-		}, 30000) // Update every 30 seconds instead of every second
+			//updateCurrentTime()
+		}, 1000) // Update every 30 seconds instead of every second
 		return () => clearInterval(interval)
 	}, [])
 
@@ -231,6 +236,17 @@ const ProposalList = () => {
 					calldatas,
 					descriptionHash: ethers.id(description),
 					eta: eta,
+					isReady: eta > 0 && currentTime >= eta, // Initial ready state
+					onReadyStateChange: (isReady) => {
+						// Update this specific proposal's ready state
+						setProposals(currentProposals =>
+							currentProposals.map(p =>
+								p.id.toString() === proposalId.toString()
+									? { ...p, isReady }
+									: p
+							)
+						)
+					}
 				}
 			})
 
@@ -245,12 +261,11 @@ const ProposalList = () => {
 			setIsLoading(false)
 			//console.log('Finished fetchProposalEvents')
 		}
-	}, [governorAddress, page, publicClient])
+	}, [governorAddress, page, publicClient, currentTime])
 
 	// Get the current block number using Wagmi
 	const { data: currentBlock } = useBlockNumber()
-
-	// Replace your existing useEffect with currentBlock with this:
+	
 	useEffect(() => {
 		if (!currentBlock || !governorAddress || !publicClient) return
 
@@ -304,7 +319,7 @@ const ProposalList = () => {
 		abi: MyGovernor.abi,
 		eventName: 'ProposalCreated',
 		onLogs() {
-			updateCurrentTime()
+			//updateCurrentTime()
 			fetchProposalEvents()
 			refetchProposalCount()
 		},
@@ -317,7 +332,7 @@ const ProposalList = () => {
 		eventName: 'VoteCast',
 		onLogs(logs) {
 			console.log('VoteCast event detected:', logs)
-			updateCurrentTime()
+			//updateCurrentTime()
 			fetchProposalEvents()
 		},
 		enabled: !!governorAddress,
@@ -328,7 +343,7 @@ const ProposalList = () => {
 		abi: MyGovernor.abi,
 		eventName: 'ProposalQueued',
 		onLogs() {
-			updateCurrentTime()
+			//updateCurrentTime()
 			fetchProposalEvents()
 		},
 		enabled: !!governorAddress,
@@ -339,7 +354,7 @@ const ProposalList = () => {
 		abi: MyGovernor.abi,
 		eventName: 'ProposalExecuted',
 		onLogs() {
-			updateCurrentTime()
+			//updateCurrentTime()
 			fetchProposalEvents()
 		},
 		enabled: !!governorAddress,
@@ -365,7 +380,7 @@ const ProposalList = () => {
 					const receipt = await publicClient.waitForTransactionReceipt({ hash: executionHash })
 					if (receipt.status === 'success') {
 						//console.log('Proposal executed successfully')
-						updateCurrentTime()
+						//updateCurrentTime()
 						fetchProposalEvents()
 					} else {
 						console.error('Transaction failed:', receipt)
@@ -391,7 +406,7 @@ const ProposalList = () => {
 			// Force a refresh after vote is sent
 			setTimeout(() => {
 				//console.log('Vote cast, refreshing proposal data...')
-				updateCurrentTime()
+				//updateCurrentTime()
 				fetchProposalEvents()
 			}, 1000)
 		} catch (error) {
@@ -400,7 +415,7 @@ const ProposalList = () => {
 	}
 
 	const handleQueue = async (proposal) => {
-		updateCurrentTime() // Update time before queuing
+		//updateCurrentTime() // Update time before queuing
 		try {
 			await queueProposal({
 				address: governorAddress,
@@ -412,7 +427,7 @@ const ProposalList = () => {
 			// Force a refresh after queue transaction is sent
 			setTimeout(() => {
 				//console.log('Proposal queued, refreshing data...')
-				updateCurrentTime()
+				//updateCurrentTime()
 				fetchProposalEvents()
 			}, 1000)
 		} catch (error) {
@@ -421,7 +436,7 @@ const ProposalList = () => {
 	}
 
 	const handleExecute = async (proposal) => {
-		updateCurrentTime() // Update time before execution check
+		//updateCurrentTime() // Update time before execution check
 
 		// Double-check if proposal can be executed with fresh timestamp
 		if (!canExecuteProposal(proposal.eta, currentTime)) {
@@ -455,7 +470,7 @@ const ProposalList = () => {
 			// Force a refresh after execution transaction is sent
 			setTimeout(() => {
 				//console.log('Proposal execution submitted, refreshing data...')
-				updateCurrentTime()
+				//updateCurrentTime()
 				fetchProposalEvents()
 			}, 1000)
 		} catch (error) {
@@ -475,19 +490,17 @@ const ProposalList = () => {
 		}
 	}
 
-	
-	useEffect(() => {		
+
+	useEffect(() => {
 		if (!chain || !governorAddress) return
+		const pollingInterval = currentNetwork === 'localhost' ? 10000 : 30000
+		const interval = setInterval(fetchProposalEvents, pollingInterval)
+		return () => clearInterval(interval)
 
-		const pollingInterval = setInterval(() => {
-			//console.log("Polling for proposal status updates")
-			fetchProposalEvents()
-		}, 5000) // Poll every 5 seconds on Sepolia
 
-		return () => clearInterval(pollingInterval)
-	}, [chain, governorAddress, fetchProposalEvents])
+	}, [chain, governorAddress, fetchProposalEvents, currentNetwork])
 
-		
+
 	if (isLoading && !proposals.length) {
 		return (
 			<div className="mt-8">
@@ -500,6 +513,33 @@ const ProposalList = () => {
 	}
 
 	//console.log('Rendering ProposalList with proposals:', proposals)
+
+	// Execute button rendering in the JSX
+	const renderExecuteButton = (proposal) => {
+		if (proposal.state !== 5) return null
+
+		if (proposal.isReady || canExecuteProposal(proposal.eta)) {
+			return (
+				<button
+					onClick={() => handleExecute(proposal)}
+					className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600"
+					disabled={executionInProgress}
+				>
+					Execute
+				</button>
+			)
+		} else {
+			return (
+				<button
+					className="bg-gray-300 text-gray-600 px-3 py-1 rounded cursor-not-allowed"
+					disabled={true}
+				>
+					Waiting
+				</button>
+			)
+		}
+	};
+
 	return (
 		<div className="mt-8">
 			<h2 className="text-2xl font-bold mb-4">Proposals</h2>
@@ -585,26 +625,7 @@ const ProposalList = () => {
 												Queue
 											</button>
 										)}
-										{proposal.state === 5 && (
-											<>
-												{canExecuteProposal(proposal.eta, currentTime) ? (
-													<button
-														onClick={() => handleExecute(proposal)}
-														className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600"
-														disabled={executionInProgress}
-													>
-														Execute
-													</button>
-												) : (
-													<button
-														className="bg-gray-300 text-gray-600 px-3 py-1 rounded cursor-not-allowed"
-														disabled={true}
-													>
-														Waiting
-													</button>
-												)}
-											</>
-										)}
+										{proposal.state === 5 && renderExecuteButton(proposal)}
 									</div>
 								</div>
 								<div className="mt-4 text-sm text-gray-500">
@@ -645,5 +666,13 @@ const ProposalList = () => {
 		</div>
 	)
 }
+
+const ProposalList = () => {
+	return (
+		<TimingProvider>
+			<ProposalListContent />
+		</TimingProvider>
+	)
+};
 
 export default ProposalList

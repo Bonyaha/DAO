@@ -115,7 +115,7 @@ function ActionButtons() {
 		// Run immediately when dependencies change
 		updateProposalState()
 
-		const pollingInterval = currentNetwork === 'localhost' ? 5000 : 30000
+		const pollingInterval = currentNetwork === 'localhost' ? 10000 : 30000
 		const interval = setInterval(updateProposalState, pollingInterval)
 		return () => clearInterval(interval)
 	}, [latestProposal, governorAddress, publicClient, currentNetwork])
