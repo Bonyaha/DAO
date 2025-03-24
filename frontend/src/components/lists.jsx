@@ -28,7 +28,7 @@ const ProposalListContent = () => {
 	const [page, setPage] = useState(0)
 	const [totalProposals, setTotalProposals] = useState(0)
 	const [governorAddress, setGovernorAddress] = useState('')
-	const { currentTime, canExecuteProposal } = useTiming();
+	const {currentTime, canExecuteProposal } = useTiming();
 	const [timelockPeriod, setTimelockPeriod] = useState(0) // Store timelock period in seconds
 	const [votingPower, setVotingPower] = useState(0)
 	const [tokenAddress, setTokenAddress] = useState('')

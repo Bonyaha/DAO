@@ -351,7 +351,7 @@ function ActionButtons() {
 	}
 
 	const canPropose = latestProposal === null ||
-		![0, 1, 2].includes(latestProposal.state)
+		![0, 1, 4, 5].includes(latestProposal.state)
 
 	// Handle Propose button click
 	const handlePropose = () => {
