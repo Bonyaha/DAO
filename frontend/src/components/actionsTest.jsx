@@ -350,9 +350,14 @@ function ActionButtons() {
 		}
 	}
 
+	const canPropose = latestProposal === null ||
+		![0, 1, 2].includes(latestProposal.state)
+
 	// Handle Propose button click
 	const handlePropose = () => {
-		setShowProposalForm(true)
+		if (canPropose) {
+			setShowProposalForm(true)
+		}
 	}
 
 	// Handle proposal success
@@ -459,7 +464,9 @@ function ActionButtons() {
 
 					<button
 						onClick={handlePropose}
-						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow"
+						disabled={!canPropose}
+						className={`${canPropose ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
+						title={!canPropose ? 'A proposal is already in progress' : ''}
 					>
 						PROPOSE
 					</button>
