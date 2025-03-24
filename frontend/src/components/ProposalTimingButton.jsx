@@ -1,4 +1,3 @@
-// ProposalTimingButton.js - Modified version
 import { useState, useEffect, useCallback } from 'react'
 import { useReadContract, usePublicClient } from 'wagmi'
 import PropTypes from 'prop-types'
@@ -9,8 +8,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [timeLeft, setTimeLeft] = useState('')
 	const [buttonStyle, setButtonStyle] = useState({})
 	const [tooltipText, setTooltipText] = useState('')
-	const [showTooltip, setShowTooltip] = useState(false)
-	const [isReady, setIsReady] = useState(false)
+	const [showTooltip, setShowTooltip] = useState(false)	
 
 	const { currentTime, canExecuteProposal } = useTiming()
 	const publicClient = usePublicClient()
@@ -78,7 +76,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-amber-800',
 									hover: 'hover:bg-amber-200'
 								})
-								setIsReady(false)
+								
 							} else {
 								setTimeLeft('Processing')
 								setTooltipText('Waiting for next state update')
@@ -87,7 +85,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-amber-800',
 									hover: 'hover:bg-amber-200'
 								})
-								setIsReady(false)
+								
 							}
 						}
 						break
@@ -103,7 +101,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-blue-800',
 									hover: 'hover:bg-blue-200'
 								})
-								setIsReady(false)
+								
 							} else {
 								setTimeLeft('Processing')
 								setTooltipText('Waiting for next state update')
@@ -112,15 +110,14 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-blue-800',
 									hover: 'hover:bg-blue-200'
 								})
-								setIsReady(false)
+							
 							}
 						}
 						break
 
 					case 5: // Queued
 						if (proposal.eta) {
-							const secondsUntilExecution = proposal.eta - currentTime
-							const isReadyForExecution = canExecuteProposal(proposal.eta)
+							const secondsUntilExecution = proposal.eta - currentTime							
 
 							if (secondsUntilExecution > 0) {
 								setTimeLeft(formatTimeLeft(secondsUntilExecution))
@@ -130,7 +127,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-purple-800',
 									hover: 'hover:bg-purple-200'
 								})
-								setIsReady(false)
+								
 							} else {
 								setTimeLeft('Ready')
 								setTooltipText('Proposal is ready for execution')
@@ -139,13 +136,8 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-green-800',
 									hover: 'hover:bg-green-200'
 								})
-								setIsReady(true)
-							}
-
-							// Expose isReady state through proposal object (for parent components)
-							if (proposal.onReadyStateChange && isReadyForExecution !== proposal.isReady) {
-								proposal.onReadyStateChange(isReadyForExecution)
-							}
+								
+							}							
 						}
 						break
 
@@ -157,7 +149,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 							text: 'text-gray-800',
 							hover: 'hover:bg-gray-200'
 						})
-						setIsReady(false)
+						
 				}
 			} catch (error) {
 				console.error('Error calculating time left:', error)
@@ -177,7 +169,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 				className={`${buttonStyle.bg} ${buttonStyle.text} px-3 py-1 rounded-full text-sm ${buttonStyle.hover} transition-colors duration-200`}
 				onMouseEnter={() => setShowTooltip(true)}
 				onMouseLeave={() => setShowTooltip(false)}
-				data-ready={isReady}
+				data-ready={proposal.state === 5 && canExecuteProposal(proposal.eta)}
 			>
 				<span className="flex items-center">
 					<svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -207,9 +199,7 @@ ProposalTimingButton.propTypes = {
 			PropTypes.string,
 			PropTypes.number,
 			PropTypes.object // For BigInt or BN objects
-		]),
-		onReadyStateChange: PropTypes.func,
-		isReady: PropTypes.bool
+		])		
 	}).isRequired,
 	governorAddress: PropTypes.string.isRequired
 }

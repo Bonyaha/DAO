@@ -97,7 +97,7 @@ function ActionButtons() {
 	// Periodically update the state of latestProposal
 	useEffect(() => {
 		const updateProposalState = async () => {
-			if (latestProposal && governorAddress && publicClient) {
+			if (latestProposal && latestProposal.id && governorAddress && publicClient) {
 				try {
 					const state = await publicClient.readContract({
 						address: governorAddress,
@@ -105,7 +105,7 @@ function ActionButtons() {
 						functionName: 'state',
 						args: [latestProposal.id],
 					})
-					setLatestProposal(prev => ({ ...prev, state: Number(state) }))
+					setLatestProposal(prev => prev ? { ...prev, state: Number(state) } : null)
 				} catch (error) {
 					console.error('Error updating proposal state:', error)
 				}
@@ -393,7 +393,7 @@ function ActionButtons() {
 
 		if (isCancelTxSuccess) {
 			setIsCanceling(false)
-			setLatestProposal(null)
+			setLatestProposal(prev => prev ? { ...prev, state: 3 } : null)
 		}
 	}, [isCancelTxSuccess])
 

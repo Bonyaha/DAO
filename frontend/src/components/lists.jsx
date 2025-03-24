@@ -235,18 +235,7 @@ const ProposalListContent = () => {
 					values,
 					calldatas,
 					descriptionHash: ethers.id(description),
-					eta: eta,
-					isReady: eta > 0 && currentTime >= eta, // Initial ready state
-					onReadyStateChange: (isReady) => {
-						// Update this specific proposal's ready state
-						setProposals(currentProposals =>
-							currentProposals.map(p =>
-								p.id.toString() === proposalId.toString()
-									? { ...p, isReady }
-									: p
-							)
-						)
-					}
+					eta: eta					
 				}
 			})
 
@@ -261,7 +250,7 @@ const ProposalListContent = () => {
 			setIsLoading(false)
 			//console.log('Finished fetchProposalEvents')
 		}
-	}, [governorAddress, page, publicClient, currentTime])
+	}, [governorAddress, page, publicClient])
 
 	// Get the current block number using Wagmi
 	const { data: currentBlock } = useBlockNumber()
@@ -518,7 +507,7 @@ const ProposalListContent = () => {
 	const renderExecuteButton = (proposal) => {
 		if (proposal.state !== 5) return null
 
-		if (proposal.isReady || canExecuteProposal(proposal.eta)) {
+		if (canExecuteProposal(proposal.eta)) {
 			return (
 				<button
 					onClick={() => handleExecute(proposal)}
