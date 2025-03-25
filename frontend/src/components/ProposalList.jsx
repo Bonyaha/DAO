@@ -443,12 +443,13 @@ const ProposalListContent = () => {
 
 	useEffect(() => {
 		if (!chain || !governorAddress) return
-		const pollingInterval = currentNetwork === 'localhost' ? 10000 : 30000
-		const interval = setInterval(fetchProposalEvents, pollingInterval)
-		return () => clearInterval(interval)
+		if (totalProposals > 0) {
+			const pollingInterval = currentNetwork === 'localhost' ? 10000 : 30000
+			const interval = setInterval(fetchProposalEvents, pollingInterval)
+			return () => clearInterval(interval)
+		}
 
-
-	}, [chain, governorAddress, fetchProposalEvents, currentNetwork])
+	}, [chain, governorAddress, fetchProposalEvents, currentNetwork, totalProposals])
 
 
 	if (isLoading && !proposals.length) {
@@ -489,6 +490,8 @@ const ProposalListContent = () => {
 			)
 		}
 	};
+
+console.log("proposals", proposals);
 
 	return (
 		<div className="mt-8">
