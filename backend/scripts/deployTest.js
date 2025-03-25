@@ -133,6 +133,11 @@ async function main() {
 		governanceToken: {
 			address: governanceToken.target,
 		},
+		timelock: {
+			address: timelock.target,
+			constructorArgs: [minDelay, proposers, executors, admin],
+		},
+
 		proposalId: addresses[networkName]?.proposalId, // Preserve existing proposalId if it exists
 		proposalValue: addresses[networkName]?.proposalValue, // Preserve existing proposalValue if it exists
 	}
@@ -155,3 +160,14 @@ main()
 		console.error(error)
 		process.exit(1)
 	})
+
+/* ,
+    "timelock": {
+      "address": "0x44C493AEe3f2a76a67eb5Fb3c24035DAb4940189",
+      "constructorArgs": [
+        3600,
+        [],
+        [],
+        "0x9652f953a1b67E0Af4b5Daf77C6bAF10948E2932"
+      ]
+    }, */

@@ -3,6 +3,7 @@ import { useReadContract, useWriteContract, useWatchContractEvent, useAccount, u
 import { ethers } from 'ethers'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
+import TimelockController from '../TimelockController.json'
 import addresses from '../addresses.json'
 import ProposalTimingButton from './ProposalTimingButton'
 import { TimingProvider } from './TimingContext';
@@ -28,6 +29,7 @@ const ProposalListContent = () => {
 	const [page, setPage] = useState(0)
 	const [totalProposals, setTotalProposals] = useState(0)
 	const [governorAddress, setGovernorAddress] = useState('')
+	const [timelockController, setTimelockController] = useState('')
 	const {currentTime, canExecuteProposal } = useTiming();
 	const [timelockPeriod, setTimelockPeriod] = useState(0) // Store timelock period in seconds
 	const [votingPower, setVotingPower] = useState(0)
@@ -52,6 +54,7 @@ const ProposalListContent = () => {
 			if (addresses[network]) {
 				setGovernorAddress(addresses[network].governor.address)
 				setTokenAddress(addresses[network].governanceToken.address)
+				setTimelockController(addresses[network].timelock.address)
 			} else {
 				console.error(`Network ${network} not found in addresses.json`)
 			}
@@ -100,8 +103,8 @@ const ProposalListContent = () => {
 
 	// Get the timelock period from the contract
 	const { data: timelockData } = useReadContract({
-		address: governorAddress,
-		abi: MyGovernor.abi,
+		address: timelockController,
+		abi: TimelockController.abi,
 		functionName: 'getMinDelay',
 		enabled: !!governorAddress,
 	})
@@ -129,7 +132,7 @@ const ProposalListContent = () => {
 
 	// Fetch proposal events using Wagmi's publicClient
 	const fetchProposalEvents = useCallback(async () => {
-		//console.log('Starting fetchProposalEvents')
+		console.log('Fetching proposal events at:', new Date().toISOString())
 		if (!publicClient) {
 			console.error('Public client is not available')
 			return
@@ -491,7 +494,8 @@ const ProposalListContent = () => {
 		}
 	};
 
-console.log("proposals", proposals);
+//console.log("proposals", proposals);
+console.log(`timelockPeriod: ${timelockPeriod}`);
 
 	return (
 		<div className="mt-8">
