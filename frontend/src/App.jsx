@@ -1,20 +1,13 @@
 import { useState } from 'react'
-import { useAccount, /* useConnect, */ useDisconnect, /* useContractRead */ } from 'wagmi'
-//import { ethers } from 'ethers'
-
-//import MyGovernor from './artifacts/contracts/MyGovernor.sol/MyGovernor.json'
-//import addresses from './addresses.json'
+import { useAccount, useDisconnect } from 'wagmi'
 import HeaderBanner from './components/HeaderBanner'
 import DashboardCards from './components/DashboardCards'
-import ActionButtons from './components/actionsTest'
-//import { Account } from './components/account'
+import ActionButtons from './components/actionButtons'
 import { WalletOptions } from './components/wallet-options'
-//import './App.css'
   
 
 
-function App() {
-  //const [proposals, setProposals] = useState([])    
+function App() {    
   const [showWalletOptions, setShowWalletOptions] = useState(false);
 
   const { address, isConnected } = useAccount();
@@ -22,7 +15,7 @@ function App() {
 
   const handleDisconnect = () => {
     disconnect()
-    setShowWalletOptions(false) // Reset the state when disconnecting
+    setShowWalletOptions(false)
   };
   
 
