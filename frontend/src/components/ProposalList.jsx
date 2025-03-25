@@ -83,7 +83,6 @@ const ProposalListContent = () => {
 		}
 	}, [userVotingPower])
 
-
 	// Refresh voting power periodically
 	useEffect(() => {
 		if (tokenAddress && address) {
@@ -128,14 +127,6 @@ const ProposalListContent = () => {
 	}
 
 
-	// Update time periodically but less frequently
-	useEffect(() => {
-		const interval = setInterval(() => {
-			
-		}, 1000) // Update every 30 seconds instead of every second
-		return () => clearInterval(interval)
-	}, [])
-
 	// Fetch proposal events using Wagmi's publicClient
 	const fetchProposalEvents = useCallback(async () => {
 		//console.log('Starting fetchProposalEvents')
@@ -153,7 +144,7 @@ const ProposalListContent = () => {
 				address: governorAddress,
 				abi: MyGovernor.abi,
 				eventName: 'ProposalCreated',
-				fromBlock: 'earliest', // or use a specific block number that you know exists
+				fromBlock: 'earliest',
 				toBlock: 'latest'
 			})
 
@@ -269,7 +260,6 @@ const ProposalListContent = () => {
 				}
 			}
 
-			// Only update state if there were changes
 			if (hasUpdates) {
 				setProposals(proposalsToCheck)
 			}
@@ -371,8 +361,7 @@ const ProposalListContent = () => {
 
 			// Force a refresh after vote is sent
 			setTimeout(() => {
-				//console.log('Vote cast, refreshing proposal data...')
-				
+				//console.log('Vote cast, refreshing proposal data...')				
 				fetchProposalEvents()
 			}, 1000)
 		} catch (error) {
@@ -381,7 +370,6 @@ const ProposalListContent = () => {
 	}
 
 	const handleQueue = async (proposal) => {
-		 // Update time before queuing
 		try {
 			await queueProposal({
 				address: governorAddress,
@@ -392,8 +380,7 @@ const ProposalListContent = () => {
 
 			// Force a refresh after queue transaction is sent
 			setTimeout(() => {
-				//console.log('Proposal queued, refreshing data...')
-				
+				//console.log('Proposal queued, refreshing data...')				
 				fetchProposalEvents()
 			}, 1000)
 		} catch (error) {
@@ -402,8 +389,6 @@ const ProposalListContent = () => {
 	}
 
 	const handleExecute = async (proposal) => {
-		 // Update time before execution check
-
 		// Double-check if proposal can be executed with fresh timestamp
 		if (!canExecuteProposal(proposal.eta, currentTime)) {
 			console.error('Proposal not yet ready for execution')
@@ -435,8 +420,7 @@ const ProposalListContent = () => {
 
 			// Force a refresh after execution transaction is sent
 			setTimeout(() => {
-				//console.log('Proposal execution submitted, refreshing data...')
-				
+				//console.log('Proposal execution submitted, refreshing data...')				
 				fetchProposalEvents()
 			}, 1000)
 		} catch (error) {
