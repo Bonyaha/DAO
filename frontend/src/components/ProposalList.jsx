@@ -122,12 +122,12 @@ const ProposalListContent = () => {
 		}
 	}, [proposalCount])
 	
-	const formatTimelockPeriod = (seconds) => {
+	/* const formatTimelockPeriod = (seconds) => {
 		const days = Math.floor(seconds / 86400)
 		const hours = Math.floor((seconds % 86400) / 3600)
 		const minutes = Math.floor((seconds % 3600) / 60)
 		return `${days}d ${hours}h ${minutes}m`
-	}
+	} */
 
 
 	// Fetch proposal events using Wagmi's publicClient

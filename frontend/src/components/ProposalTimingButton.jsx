@@ -158,7 +158,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 		}
 
 		calculateTimeLeft()
-		const interval = setInterval(calculateTimeLeft, 5000)
+		const interval = setInterval(calculateTimeLeft, 1000)
 		return () => clearInterval(interval)
 	}, [proposal, publicClient, currentTime, proposalSnapshot, proposalDeadline, governorAddress, blocksToTime, formatTimeLeft, canExecuteProposal])
 
