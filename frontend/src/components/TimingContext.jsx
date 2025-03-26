@@ -1,17 +1,28 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
+import { usePublicClient } from 'wagmi'
 import { TimingContext } from './hooks/useTiming'
 
 export function TimingProvider({ children }) {
 	const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000))
+	const publicClient = usePublicClient()
 
-	// Update the current time every second
+	const updateCurrentTime = useCallback(async () => {
+		try {
+			const block = await publicClient.getBlock()
+			setCurrentTime(Number(block.timestamp))
+		} catch (error) {
+			console.error('Error fetching block timestamp:', error)
+		}
+	},[publicClient])
+
+	// Update the c	urrent time every second
 	useEffect(() => {
-		const interval = setInterval(() => {
-			setCurrentTime(Math.floor(Date.now() / 1000))
-		}, 1000)
+		if (!publicClient) return
+		updateCurrentTime()
+		const interval = setInterval(updateCurrentTime, 1000)
 		return () => clearInterval(interval)
-	}, [])
+	}, [updateCurrentTime, publicClient])
 
 	// Function to check if a proposal can be executed
 	const canExecuteProposal = (eta) => {

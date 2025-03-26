@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAccount, useDisconnect } from 'wagmi'
 import HeaderBanner from './components/HeaderBanner'
 import DashboardCards from './components/DashboardCards'
-import ActionButtons from './components/actionButtons'
+import ActionButtons from './components/ActionButtons'
 import { WalletOptions } from './components/wallet-options'
   
 

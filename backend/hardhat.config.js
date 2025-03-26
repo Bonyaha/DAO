@@ -17,6 +17,12 @@ module.exports = {
     }
   },
   networks: {
+    hardhat: {
+      mining: {
+        auto: false,
+        interval: 1000 // Mine new block every second
+      }
+    },
     sepolia: {
       url: process.env.ALCHEMY_SEPOLIA_URL,
       accounts: [process.env.SEPOLIA_PRIVATE_KEY],

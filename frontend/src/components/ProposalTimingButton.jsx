@@ -117,8 +117,9 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 
 					case 5: // Queued
 						if (proposal.eta) {
-							const secondsUntilExecution = proposal.eta - currentTime							
+//console.log(`curentTime: ${currentTime}`);
 
+							const secondsUntilExecution = proposal.eta - currentTime							
 							if (secondsUntilExecution > 0) {
 								setTimeLeft(formatTimeLeft(secondsUntilExecution))
 								setTooltipText(`Ready for execution in ${formatTimeLeft(secondsUntilExecution)}`)
@@ -127,7 +128,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-purple-800',
 									hover: 'hover:bg-purple-200'
 								})
-								
+
 							} else {
 								setTimeLeft('Ready')
 								setTooltipText('Proposal is ready for execution')
@@ -136,8 +137,8 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-green-800',
 									hover: 'hover:bg-green-200'
 								})
-								
-							}							
+
+							}
 						}
 						break
 
