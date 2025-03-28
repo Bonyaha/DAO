@@ -4,7 +4,7 @@ import HeaderBanner from './components/HeaderBanner'
 import DashboardCards from './components/DashboardCards'
 import ActionButtons from './components/ActionButtons'
 import { WalletOptions } from './components/wallet-options'
-  
+import { ProposalProvider } from './components/ProposalContext'  
 
 
 function App() {    
@@ -42,7 +42,7 @@ function App() {
 
   return (
 
-
+    <ProposalProvider>
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto p-4">
         <div className="flex justify-end mb-4">
@@ -63,6 +63,7 @@ function App() {
         <ActionButtons />         
       </div>
     </div>
+      </ProposalProvider>
   )
 }
 

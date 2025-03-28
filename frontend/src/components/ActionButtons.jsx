@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt, usePublicClient } from 'wagmi'
+import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { BaseError, ContractFunctionRevertedError } from 'viem'
 
 import Box from '../artifacts/contracts/Box.sol/Box.json'
@@ -8,6 +8,7 @@ import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import addresses from '../addresses.json'
 import ProposalForm from './ProposalForm'
 import ProposalList from './ProposalList'
+import { useProposalContext } from './hooks/useProposalContext'
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
@@ -18,18 +19,20 @@ function ActionButtons() {
 	const [isLoading, setIsLoading] = useState(false)
 	const [isClaimLoading, setIsClaimLoading] = useState(false)
 	const [isDelegating, setIsDelegating] = useState(false)
-	const [currentNetwork, setCurrentNetwork] = useState('')
+	const [, setCurrentNetwork] = useState('')
 	const [errorMessage, setErrorMessage] = useState('')
 	const [showError, setShowError] = useState(false)
 	const [showProposalForm, setShowProposalForm] = useState(false)
 	const [showProposalList, setShowProposalList] = useState(false)
 	const [hasClaimedTokens, setHasClaimedTokens] = useState(false)
 	const [hasVotingPower, setHasVotingPower] = useState(false)
-	const [latestProposal, setLatestProposal] = useState(null)
 	const [isCanceling, setIsCanceling] = useState(false)
 
 	const { chain, address } = useAccount()
-	const publicClient = usePublicClient()
+	const { proposals } = useProposalContext()
+
+	// Get the latest proposal, assuming proposals are sorted by block number
+	const latestProposal = proposals.length > 0 ? proposals[0] : null
 
 	// Initialize network and contract addresses using Wagmi
 	useEffect(() => {
@@ -60,8 +63,8 @@ function ActionButtons() {
 		enabled: false,
 	})
 
-	// Check if the user has already claimed tokens using s_claimedTokens mapping
-	const { data: hasClaimedData, refetch: refetchHasClaimed } = useReadContract({
+	// Check if the user has already claimed tokens
+	const { data: hasClaimedData } = useReadContract({
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		functionName: 's_claimedTokens',
@@ -70,7 +73,7 @@ function ActionButtons() {
 	})
 
 	// Check if user has voting power
-	const { data: votingPowerData, refetch: refetchVotingPower } = useReadContract({
+	const { data: votingPowerData } = useReadContract({
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		functionName: 'getVotes',
@@ -78,47 +81,15 @@ function ActionButtons() {
 		enabled: !!tokenAddress && !!address,
 	})
 
-	// Update claim status whenever address or token address changes
+	// Update claim status on successful data fetch or explicit action
 	useEffect(() => {
-		if (tokenAddress && address) {
-			refetchHasClaimed().then(() => {
-				if (hasClaimedData !== undefined) {
-					setHasClaimedTokens(hasClaimedData)
-				}
-			})
-			refetchVotingPower().then(() => {
-				if (votingPowerData !== undefined) {
-					setHasVotingPower(votingPowerData > 0)
-				}
-			})
+		if (hasClaimedData !== undefined) {
+			setHasClaimedTokens(hasClaimedData)
 		}
-	}, [tokenAddress, address, hasClaimedData, refetchHasClaimed, votingPowerData, refetchVotingPower])
-
-	// Periodically update the state of latestProposal
-	useEffect(() => {
-		const updateProposalState = async () => {
-			if (latestProposal && latestProposal.id && governorAddress && publicClient) {
-				try {
-					const state = await publicClient.readContract({
-						address: governorAddress,
-						abi: MyGovernor.abi,
-						functionName: 'state',
-						args: [latestProposal.id],
-					})
-					setLatestProposal(prev => prev ? { ...prev, state: Number(state) } : null)
-				} catch (error) {
-					console.error('Error updating proposal state:', error)
-				}
-			}
+		if (votingPowerData !== undefined) {
+			setHasVotingPower(votingPowerData > 0)
 		}
-
-		// Run immediately when dependencies change
-		updateProposalState()
-
-		const pollingInterval = currentNetwork === 'localhost' ? 10000 : 30000
-		const interval = setInterval(updateProposalState, pollingInterval)
-		return () => clearInterval(interval)
-	}, [latestProposal, governorAddress, publicClient, currentNetwork])
+	}, [hasClaimedData, votingPowerData])
 
 	// Contract writes with error handling
 	const { writeContract, data: claimTxHash, isPending, error: writeError } = useWriteContract()
@@ -360,12 +331,6 @@ function ActionButtons() {
 		}
 	}
 
-	// Handle proposal success
-	const handleProposalSuccess = (newProposal) => {
-		console.log('Proposal submitted successfully!', newProposal)
-		setLatestProposal(newProposal)
-	}
-
 	// Close error message
 	const closeError = () => {
 		setShowError(false)
@@ -388,17 +353,13 @@ function ActionButtons() {
 		if (isDelegateTxSuccess) {
 			setIsDelegating(false)
 			setHasVotingPower(true)
-			refetchVotingPower()
 		}
-	}, [isDelegateTxSuccess, refetchVotingPower])
+	}, [isDelegateTxSuccess])
 
 	// Effect to handle successful cancel
 	useEffect(() => {
-		console.log("isCancelTxSuccess", isCancelTxSuccess)
-
 		if (isCancelTxSuccess) {
 			setIsCanceling(false)
-			setLatestProposal(prev => prev ? { ...prev, state: 3 } : null)
 		}
 	}, [isCancelTxSuccess])
 
@@ -489,7 +450,6 @@ function ActionButtons() {
 					{showProposalForm && (
 						<ProposalForm
 							onClose={() => setShowProposalForm(false)}
-							onSuccess={handleProposalSuccess}
 						/>
 					)}
 				</div>

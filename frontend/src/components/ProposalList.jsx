@@ -1,13 +1,13 @@
-import { useEffect, useState, useCallback } from 'react'
-import { useReadContract, useWriteContract, useWatchContractEvent, useAccount, usePublicClient, useBlockNumber } from 'wagmi'
-import { ethers } from 'ethers'
+import { /* useEffect, */ useState, /* useCallback */ } from 'react'
+import { /* useReadContract, */ useWriteContract, /* useWatchContractEvent, useAccount, usePublicClient, useBlockNumber */ } from 'wagmi'
+//import { ethers } from 'ethers'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
-import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
+//import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 //import TimelockController from '../TimelockController.json'
-import addresses from '../addresses.json'
+//import addresses from '../addresses.json'
 import ProposalTimingButton from './ProposalTimingButton'
-import { TimingProvider } from './TimingContext';
-import { useTiming } from './hooks/useTiming'
+//import { TimingProvider } from './TimingContext';
+import { useProposalContext } from './hooks/useProposalContext'
 
 const ProposalStatusMap = {
 	0: 'Pending',
@@ -23,24 +23,35 @@ const ProposalStatusMap = {
 const PROPOSALS_PER_PAGE = 5
 
 const ProposalListContent = () => {
-	const [proposals, setProposals] = useState([])
-	const [currentNetwork, setCurrentNetwork] = useState('')
-	const [isLoading, setIsLoading] = useState(true)
+	const {
+		proposals,
+		totalProposals,
+		governorAddress,
+		votingPower,
+		canExecuteProposal,
+		currentTime,
+		isLoading
+	} = useProposalContext()
+
+
+	//const [proposals, setProposals] = useState([])
+	//const [currentNetwork, setCurrentNetwork] = useState('')
+	//const [isLoading, ] = useState(true)
 	const [page, setPage] = useState(0)
-	const [totalProposals, setTotalProposals] = useState(0)
-	const [governorAddress, setGovernorAddress] = useState('')
+	//const [totalProposals, setTotalProposals] = useState(0)
+	//const [governorAddress, setGovernorAddress] = useState('')
 	//const [timelockController, setTimelockController] = useState('')
-	const {currentTime, canExecuteProposal } = useTiming();
+	//const {currentTime, canExecuteProposal } = useTiming();
 	//const [timelockPeriod, setTimelockPeriod] = useState(0) // Store timelock period in seconds
-	const [votingPower, setVotingPower] = useState(0)
-	const [tokenAddress, setTokenAddress] = useState('')
+	//const [votingPower, setVotingPower] = useState(0)
+	//const [tokenAddress, setTokenAddress] = useState('')
 
 
-	const { address, chain } = useAccount()
-	const publicClient = usePublicClient()
+	/* const { address, chain } = useAccount()
+	const publicClient = usePublicClient() */
 	
 	// Initialize network and contract addresses using Wagmi
-	useEffect(() => {
+	/* useEffect(() => {
 		const initializeNetwork = async () => {
 			if (!chain) {
 				console.error('No chain detected')
@@ -61,10 +72,10 @@ const ProposalListContent = () => {
 		}
 
 		initializeNetwork()		
-	}, [chain])
+	}, [chain]) */
 
 	// Get total proposal count from contract
-	const { data: proposalCount, refetch: refetchProposalCount } = useReadContract({
+	/* const { data: proposalCount, refetch: refetchProposalCount } = useReadContract({
 		address: governorAddress,
 		abi: MyGovernor.abi,
 		functionName: 'getNumberOfProposals',
@@ -77,17 +88,17 @@ const ProposalListContent = () => {
 		functionName: 'getVotes',
 		args: [address],
 		enabled: !!tokenAddress && !!address,
-	})
+	}) */
 
 
-	useEffect(() => {
+	/* useEffect(() => {
 		if (userVotingPower !== undefined) {
 			setVotingPower(Number(ethers.formatEther(userVotingPower)))
 		}
-	}, [userVotingPower])
+	}, [userVotingPower]) */
 
 	// Refresh voting power periodically
-	useEffect(() => {
+	/* useEffect(() => {
 		if (tokenAddress && address) {
 			// Initial fetch
 			refetchVotingPower()
@@ -99,7 +110,7 @@ const ProposalListContent = () => {
 
 			return () => clearInterval(interval)
 		}
-	}, [tokenAddress, address, refetchVotingPower])
+	}, [tokenAddress, address, refetchVotingPower]) */
 
 	// Get the timelock period from the contract
 	/* const { data: timelockData } = useReadContract({
@@ -116,11 +127,11 @@ const ProposalListContent = () => {
 		}
 	}, [timelockData]) */
 
-	useEffect(() => {
+	/* useEffect(() => {
 		if (proposalCount) {
 			setTotalProposals(Number(proposalCount))
 		}
-	}, [proposalCount])
+	}, [proposalCount]) */
 	
 	/* const formatTimelockPeriod = (seconds) => {
 		const days = Math.floor(seconds / 86400)
@@ -131,7 +142,7 @@ const ProposalListContent = () => {
 
 
 	// Fetch proposal events using Wagmi's publicClient
-	const fetchProposalEvents = useCallback(async () => {
+	/* const fetchProposalEvents = useCallback(async () => {
 		console.log('Fetching proposal events at:', new Date().toISOString())
 		if (!publicClient) {
 			console.error('Public client is not available')
@@ -221,12 +232,12 @@ const ProposalListContent = () => {
 			setIsLoading(false)
 			//console.log('Finished fetchProposalEvents')
 		}
-	}, [governorAddress, page, publicClient])
+	}, [governorAddress, page, publicClient]) */
 
 	// Get the current block number using Wagmi
-	const { data: currentBlock } = useBlockNumber()
+	//const { data: currentBlock } = useBlockNumber()
 	
-	useEffect(() => {
+	/* useEffect(() => {
 		if (!currentBlock || !governorAddress || !publicClient) return
 
 		const checkProposalStatus = async () => {
@@ -270,10 +281,10 @@ const ProposalListContent = () => {
 
 		// Check proposal status when a new block is detected
 		checkProposalStatus()
-	}, [currentBlock, governorAddress, publicClient, proposals])
+	}, [currentBlock, governorAddress, publicClient, proposals]) */
 
 	// Event listeners
-	useWatchContractEvent({
+	/* useWatchContractEvent({
 		address: governorAddress,
 		abi: MyGovernor.abi,
 		eventName: 'ProposalCreated',
@@ -323,11 +334,17 @@ const ProposalListContent = () => {
 		if (governorAddress) {
 			fetchProposalEvents()
 		}
-	}, [governorAddress, page, fetchProposalEvents])
+	}, [governorAddress, page, fetchProposalEvents]) */
 
 	const { writeContract: castVote, isPending: votingInProgress } = useWriteContract()
-	const { data: executionHash, writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
+	const { /* data: executionHash */ writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
 	const { writeContract: queueProposal, isPending: queueInProgress } = useWriteContract()
+
+	const startIdx = page * PROPOSALS_PER_PAGE
+	const endIdx = startIdx + PROPOSALS_PER_PAGE
+	const paginatedProposals = proposals.slice(startIdx, endIdx)
+
+/* 
 
 	// useEffect to handle executionHash updates
 	useEffect(() => {
@@ -351,7 +368,7 @@ const ProposalListContent = () => {
 
 			waitForReceipt()
 		}
-	}, [executionHash, publicClient, fetchProposalEvents])
+	}, [executionHash, publicClient, fetchProposalEvents]) */
 
 	const handleVote = async (proposalId, support) => {
 		try {
@@ -363,10 +380,10 @@ const ProposalListContent = () => {
 			})
 
 			// Force a refresh after vote is sent
-			setTimeout(() => {
+			/* setTimeout(() => {
 				//console.log('Vote cast, refreshing proposal data...')				
 				fetchProposalEvents()
-			}, 1000)
+			}, 1000) */
 		} catch (error) {
 			console.error('Error voting:', error)
 		}
@@ -382,10 +399,10 @@ const ProposalListContent = () => {
 			})
 
 			// Force a refresh after queue transaction is sent
-			setTimeout(() => {
+			/* setTimeout(() => {
 				//console.log('Proposal queued, refreshing data...')				
 				fetchProposalEvents()
-			}, 1000)
+			}, 1000) */
 		} catch (error) {
 			console.error('Error queuing proposal:', error)
 		}
@@ -422,10 +439,10 @@ const ProposalListContent = () => {
 			})
 
 			// Force a refresh after execution transaction is sent
-			setTimeout(() => {
+			/* setTimeout(() => {
 				//console.log('Proposal execution submitted, refreshing data...')				
 				fetchProposalEvents()
-			}, 1000)
+			}, 1000) */
 		} catch (error) {
 			console.error('Error executing proposal:', error)
 		}
@@ -444,7 +461,7 @@ const ProposalListContent = () => {
 	}
 
 
-	useEffect(() => {
+	/* useEffect(() => {
 		if (!chain || !governorAddress) return
 		if (totalProposals > 0) {
 			const pollingInterval = currentNetwork === 'localhost' ? 10000 : 30000
@@ -452,8 +469,9 @@ const ProposalListContent = () => {
 			return () => clearInterval(interval)
 		}
 
-	}, [chain, governorAddress, fetchProposalEvents, currentNetwork, totalProposals])
+	}, [chain, governorAddress, fetchProposalEvents, currentNetwork, totalProposals]) */
 
+	console.log("isLoading", isLoading);
 
 	if (isLoading && !proposals.length) {
 		return (
@@ -496,6 +514,7 @@ const ProposalListContent = () => {
 
 //console.log("proposals", proposals);
 //console.log(`timelockPeriod: ${timelockPeriod}`);
+console.log(`totalProposals: ${totalProposals}`);
 
 	return (
 		<div className="mt-8">
@@ -517,7 +536,7 @@ const ProposalListContent = () => {
 			) : (
 				<>
 					<div className="space-y-4">
-						{proposals.map((proposal) => (
+							{paginatedProposals.map((proposal) => (
 							<div key={proposal.id.toString()} className="bg-white p-6 rounded-lg shadow-md">
 								<h3 className="text-xl font-bold">{proposal.title}</h3>
 								<p className="my-2 text-gray-700">{proposal.description}</p>
@@ -624,12 +643,6 @@ const ProposalListContent = () => {
 	)
 }
 
-const ProposalList = () => {
-	return (
-		<TimingProvider>
-			<ProposalListContent />
-		</TimingProvider>
-	)
-};
+const ProposalList = () => <ProposalListContent />
 
 export default ProposalList

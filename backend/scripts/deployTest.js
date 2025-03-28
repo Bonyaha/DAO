@@ -39,7 +39,7 @@ async function main() {
 	const governor = await MyGovernor.deploy(
 		governanceToken.target,
 		timelock.target,
-		25, // 1 block voting delay
+		25, // 25 block voting delay
 		50, // 50 blocks voting period
 		5 // 5% quorum
 	)

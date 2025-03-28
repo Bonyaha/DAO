@@ -1,37 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useReadContract, usePublicClient } from 'wagmi'
 import PropTypes from 'prop-types'
-import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
-import { useTiming } from './hooks/useTiming'
+import { useProposalContext } from './hooks/useProposalContext'
 
+// eslint-disable-next-line no-unused-vars
 const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [timeLeft, setTimeLeft] = useState('')
 	const [buttonStyle, setButtonStyle] = useState({})
 	const [tooltipText, setTooltipText] = useState('')
-	const [showTooltip, setShowTooltip] = useState(false)	
+	const [showTooltip, setShowTooltip] = useState(false)
 
-	const { currentTime, canExecuteProposal } = useTiming()
-	const publicClient = usePublicClient()
+	const { currentTime, currentBlock,blockTime,canExecuteProposal } = useProposalContext()
 
-	const AVERAGE_BLOCK_TIME = 15
+	//const AVERAGE_BLOCK_TIME = 15
+console.log(`blockTime: ${blockTime}`);
 
-	// Get proposal deadline
-	const { data: proposalDeadline } = useReadContract({
-		address: governorAddress,
-		abi: MyGovernor.abi,
-		functionName: 'proposalDeadline',
-		args: [proposal.id],
-		enabled: !!governorAddress && !!proposal.id,
-	})
-
-	// Get proposal snapshot
-	const { data: proposalSnapshot } = useReadContract({
-		address: governorAddress,
-		abi: MyGovernor.abi,
-		functionName: 'proposalSnapshot',
-		args: [proposal.id],
-		enabled: !!governorAddress && !!proposal.id,
-	})
 
 	// Format time difference
 	const formatTimeLeft = useCallback((seconds) => {
@@ -52,74 +34,44 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 
 	// Convert blocks to approximate time
 	const blocksToTime = useCallback((blocks) => {
-		const seconds = blocks * AVERAGE_BLOCK_TIME
+		const seconds = blocks * blockTime
 		return formatTimeLeft(seconds)
-	}, [formatTimeLeft])
+	}, [formatTimeLeft, blockTime])
 
 	// Calculate time left based on proposal state
 	useEffect(() => {
-		const calculateTimeLeft = async () => {
+		const calculateTimeLeft = () => {
 			try {
-				if (!proposal || !publicClient || !governorAddress) return
-
-				const currentBlockNumber = await publicClient.getBlockNumber()
-
 				switch (proposal.state) {
 					case 0: // Pending
-						if (proposalSnapshot) {
-							const blocksUntilActive = Number(proposalSnapshot) - Number(currentBlockNumber)
-							if (blocksUntilActive > 0) {
-								setTimeLeft(`${blocksUntilActive} blocks`)
-								setTooltipText(`Voting begins in ${blocksUntilActive} blocks (approx. ${blocksToTime(blocksUntilActive)})`)
-								setButtonStyle({
-									bg: 'bg-amber-100',
-									text: 'text-amber-800',
-									hover: 'hover:bg-amber-200'
-								})
-								
-							} else {
-								setTimeLeft('Processing')
-								setTooltipText('Waiting for next state update')
-								setButtonStyle({
-									bg: 'bg-amber-100',
-									text: 'text-amber-800',
-									hover: 'hover:bg-amber-200'
-								})
-								
-							}
+						if (proposal.proposalSnapshot) {
+							const blocksUntilActive = proposal.proposalSnapshot - currentBlock
+							setTimeLeft('Processing')
+							setTooltipText(`Voting begins in ${blocksUntilActive} blocks (approx. ${blocksToTime(blocksUntilActive)})`)
+							setButtonStyle({
+								bg: 'bg-amber-100',
+								text: 'text-amber-800',
+								hover: 'hover:bg-amber-200'
+							})
 						}
 						break
 
 					case 1: // Active
-						if (proposalDeadline) {
-							const blocksUntilDeadline = Number(proposalDeadline) - Number(currentBlockNumber)
-							if (blocksUntilDeadline > 0) {
-								setTimeLeft(`${blocksUntilDeadline} blocks`)
-								setTooltipText(`Voting ends in ${blocksUntilDeadline} blocks (approx. ${blocksToTime(blocksUntilDeadline)})`)
-								setButtonStyle({
-									bg: 'bg-blue-100',
-									text: 'text-blue-800',
-									hover: 'hover:bg-blue-200'
-								})
-								
-							} else {
-								setTimeLeft('Processing')
-								setTooltipText('Waiting for next state update')
-								setButtonStyle({
-									bg: 'bg-blue-100',
-									text: 'text-blue-800',
-									hover: 'hover:bg-blue-200'
-								})
-							
-							}
+						if (proposal.proposalDeadline) {
+							const blocksUntilDeadline = proposal.proposalDeadline - currentBlock
+							setTimeLeft('Voting')
+							setTooltipText(`Voting ends in ${blocksUntilDeadline} blocks (approx. ${blocksToTime(blocksUntilDeadline)})`)
+							setButtonStyle({
+								bg: 'bg-blue-100',
+								text: 'text-blue-800',
+								hover: 'hover:bg-blue-200'
+							})
 						}
 						break
 
 					case 5: // Queued
 						if (proposal.eta) {
-//console.log(`curentTime: ${currentTime}`);
-
-							const secondsUntilExecution = proposal.eta - currentTime							
+							const secondsUntilExecution = proposal.eta - currentTime
 							if (secondsUntilExecution > 0) {
 								setTimeLeft(formatTimeLeft(secondsUntilExecution))
 								setTooltipText(`Ready for execution in ${formatTimeLeft(secondsUntilExecution)}`)
@@ -128,7 +80,6 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-purple-800',
 									hover: 'hover:bg-purple-200'
 								})
-
 							} else {
 								setTimeLeft('Ready')
 								setTooltipText('Proposal is ready for execution')
@@ -137,7 +88,6 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 									text: 'text-green-800',
 									hover: 'hover:bg-green-200'
 								})
-
 							}
 						}
 						break
@@ -150,7 +100,6 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 							text: 'text-gray-800',
 							hover: 'hover:bg-gray-200'
 						})
-						
 				}
 			} catch (error) {
 				console.error('Error calculating time left:', error)
@@ -160,7 +109,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 		calculateTimeLeft()
 		const interval = setInterval(calculateTimeLeft, 1000)
 		return () => clearInterval(interval)
-	}, [proposal, publicClient, currentTime, proposalSnapshot, proposalDeadline, governorAddress, blocksToTime, formatTimeLeft, canExecuteProposal])
+	}, [proposal, currentTime, currentBlock, formatTimeLeft, blocksToTime])
 
 	if (!timeLeft) return null
 
@@ -200,7 +149,9 @@ ProposalTimingButton.propTypes = {
 			PropTypes.string,
 			PropTypes.number,
 			PropTypes.object // For BigInt or BN objects
-		])		
+		]),
+		proposalSnapshot: PropTypes.number,
+		proposalDeadline: PropTypes.number
 	}).isRequired,
 	governorAddress: PropTypes.string.isRequired
 }
