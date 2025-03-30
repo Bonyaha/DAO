@@ -1,22 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useProposalContext } from './hooks/useProposalContext'
 
-
-// eslint-disable-next-line no-unused-vars
 const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [timeLeft, setTimeLeft] = useState('')
 	const [buttonStyle, setButtonStyle] = useState({})
 	const [tooltipText, setTooltipText] = useState('')
 	const [showTooltip, setShowTooltip] = useState(false)
 
+	// Use refs to track the last calculation time to avoid too frequent updates
+	const lastCalculationTimeRef = useRef(0)
+
 	const { currentTime, currentBlock, blockTime, canExecuteProposal } = useProposalContext()
 
-console.log(`currentTime: ${currentTime}`)
-	console.log(`currentBlock: ${currentBlock}`)
-	//console.log(`blockTime: ${blockTime}`)	
-
-//const AVERAGE_BLOCK_TIME = 15
 	// Format time difference
 	const formatTimeLeft = useCallback((seconds) => {
 		if (seconds <= 0) return 'Ready'
@@ -24,14 +20,14 @@ console.log(`currentTime: ${currentTime}`)
 		const days = Math.floor(seconds / 86400)
 		const hours = Math.floor((seconds % 86400) / 3600)
 		const minutes = Math.floor((seconds % 3600) / 60)
-		const remainingSeconds = seconds % 60
+		const remainingSeconds = Math.floor(seconds % 60)
 
 		return [
 			days > 0 ? `${days}d` : '',
 			hours > 0 ? `${hours}h` : '',
 			minutes > 0 ? `${minutes}m` : '',
-			`${remainingSeconds}s`
-		].filter(Boolean).join(' ')
+			remainingSeconds > 0 ? `${remainingSeconds}s` : ''
+		].filter(Boolean).join(' ') || 'Ready'
 	}, [])
 
 	// Convert blocks to approximate time
@@ -42,14 +38,29 @@ console.log(`currentTime: ${currentTime}`)
 
 	// Calculate time left based on proposal state
 	useEffect(() => {
+		// Skip too frequent updates (throttle to once per second)
+		const now = Date.now()
+		if (now - lastCalculationTimeRef.current < 1000) {
+			return
+		}
+		lastCalculationTimeRef.current = now
+
 		const calculateTimeLeft = () => {
 			try {
 				switch (proposal.state) {
 					case 0: // Pending
 						if (proposal.proposalSnapshot) {
 							const blocksUntilActive = proposal.proposalSnapshot - currentBlock
-							setTimeLeft('Processing')
-							setTooltipText(`Voting begins in ${blocksUntilActive} blocks (approx. ${blocksToTime(blocksUntilActive)})`)
+
+							// Handle the case where blocks are negative (already passed)
+							if (blocksUntilActive <= 0) {
+								setTimeLeft('Processing')
+								setTooltipText('Processing complete, waiting for state update')
+							} else {
+								setTimeLeft('Processing')
+								setTooltipText(`Voting begins in ${blocksUntilActive} blocks (approx. ${blocksToTime(blocksUntilActive)})`)
+							}
+
 							setButtonStyle({
 								bg: 'bg-amber-100',
 								text: 'text-amber-800',
@@ -61,8 +72,16 @@ console.log(`currentTime: ${currentTime}`)
 					case 1: // Active
 						if (proposal.proposalDeadline) {
 							const blocksUntilDeadline = proposal.proposalDeadline - currentBlock
-							setTimeLeft('Voting')
-							setTooltipText(`Voting ends in ${blocksUntilDeadline} blocks (approx. ${blocksToTime(blocksUntilDeadline)})`)
+
+							// Handle the case where blocks are negative (already passed)
+							if (blocksUntilDeadline <= 0) {
+								setTimeLeft('Voting')
+								setTooltipText('Voting period complete, waiting for state update')
+							} else {
+								setTimeLeft('Voting')
+								setTooltipText(`Voting ends in ${blocksUntilDeadline} blocks (approx. ${blocksToTime(blocksUntilDeadline)})`)
+							}
+
 							setButtonStyle({
 								bg: 'bg-blue-100',
 								text: 'text-blue-800',
@@ -109,8 +128,11 @@ console.log(`currentTime: ${currentTime}`)
 		}
 
 		calculateTimeLeft()
+
+		// Use a more efficient approach for updates
 		const interval = setInterval(calculateTimeLeft, 1000)
 		return () => clearInterval(interval)
+
 	}, [proposal, currentTime, currentBlock, formatTimeLeft, blocksToTime])
 
 	if (!timeLeft) return null
@@ -131,7 +153,7 @@ console.log(`currentTime: ${currentTime}`)
 				</span>
 			</button>
 			{showTooltip && (
-				<div className="absolute z-10 w-48 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-12">
+				<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
 					{tooltipText}
 				</div>
 			)}
@@ -139,25 +161,23 @@ console.log(`currentTime: ${currentTime}`)
 	)
 }
 
-	ProposalTimingButton.propTypes = {
-		proposal: PropTypes.shape({
-			id: PropTypes.oneOfType([
-				PropTypes.string,
-				PropTypes.number,
-				PropTypes.object // For BigInt or BN objects
-			]).isRequired,
-			state: PropTypes.number.isRequired,
-			eta: PropTypes.oneOfType([
-				PropTypes.string,
-				PropTypes.number,
-				PropTypes.object // For BigInt or BN objects
-			]),
-			proposalSnapshot: PropTypes.number,
-			proposalDeadline: PropTypes.number
-		}).isRequired,
-		governorAddress: PropTypes.string.isRequired
-	}
+ProposalTimingButton.propTypes = {
+	proposal: PropTypes.shape({
+		id: PropTypes.oneOfType([
+			PropTypes.string,
+			PropTypes.number,
+			PropTypes.object // For BigInt or BN objects
+		]).isRequired,
+		state: PropTypes.number.isRequired,
+		eta: PropTypes.oneOfType([
+			PropTypes.string,
+			PropTypes.number,
+			PropTypes.object // For BigInt or BN objects
+		]),
+		proposalSnapshot: PropTypes.number,
+		proposalDeadline: PropTypes.number
+	}).isRequired,
+	governorAddress: PropTypes.string.isRequired
+}
+
 export default ProposalTimingButton
-
-
-

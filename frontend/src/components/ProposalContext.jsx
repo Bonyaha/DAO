@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { usePublicClient, useWatchContractEvent, useReadContract, useBlockNumber, useAccount } from 'wagmi'
 import { ethers } from 'ethers'
@@ -7,6 +7,22 @@ import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/Governan
 import addresses from '../addresses.json'
 import { ProposalContext } from './hooks/useProposalContext'
 
+// Add this utility function for debouncing
+const useDebounce = (value, delay) => {
+	const [debouncedValue, setDebouncedValue] = useState(value)
+
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedValue(value)
+		}, delay)
+
+		return () => {
+			clearTimeout(handler)
+		}
+	}, [value, delay])
+
+	return debouncedValue
+}
 
 export function ProposalProvider({ children }) {
 	// Proposal-related state
@@ -22,12 +38,26 @@ export function ProposalProvider({ children }) {
 	const [currentBlock, setCurrentBlock] = useState(0)
 	const [blockTime, setBlockTime] = useState(1)
 
+	// Use refs to track previous values
+	//const previousProposalsRef = useRef([])
+	const previousBlockRef = useRef(0)
+	const proposalsRef = useRef([]) // New ref to track current proposals
+
 	// Hooks
 	const { address, chain } = useAccount()
 	const publicClient = usePublicClient()
 	const { data: blockNumberData } = useBlockNumber({ watch: true })
+	console.log(`blockNumberData: ${blockNumberData}`)
 
-// Detect and set block time dynamically
+	// Debounce block number updates to prevent too frequent state changes
+	const debouncedBlockNumber = useDebounce(blockNumberData, 1000)
+
+	// Update proposalsRef whenever proposals changes
+	useEffect(() => {
+		proposalsRef.current = proposals
+	}, [proposals])
+
+	// Detect and set block time dynamically
 	useEffect(() => {
 		const detectBlockTime = async () => {
 			if (!publicClient) return
@@ -60,18 +90,21 @@ export function ProposalProvider({ children }) {
 					setBlockTime(12) // 12 seconds as conservative estimate for Sepolia
 				}
 			}
-		};
-
+		}
 
 		detectBlockTime()
 	}, [publicClient, chain])
 
-	// Update current block number
+	// Update current block number - use debounced value
 	useEffect(() => {
-		if (blockNumberData) {
-			setCurrentBlock(Number(blockNumberData))
+		if (debouncedBlockNumber) {
+			const blockNum = Number(debouncedBlockNumber)
+			if (blockNum !== previousBlockRef.current) {
+				previousBlockRef.current = blockNum
+				setCurrentBlock(blockNum)
+			}
 		}
-	}, [blockNumberData])
+	}, [debouncedBlockNumber])
 
 	// Fetch network and contract addresses
 	useEffect(() => {
@@ -117,7 +150,6 @@ export function ProposalProvider({ children }) {
 			setVotingPower(Number(ethers.formatEther(userVotingPower)))
 		}
 	}, [userVotingPower])
-
 
 	// Fetch proposals
 	const fetchProposals = useCallback(async () => {
@@ -210,7 +242,9 @@ export function ProposalProvider({ children }) {
 			})
 
 			const proposalData = await Promise.all(proposalPromises)
+			// Use functional update to avoid dependency on previous state
 			setProposals(proposalData)
+			//previousProposalsRef.current = proposalData
 		} catch (error) {
 			console.error('Error fetching proposals:', error)
 		} finally {
@@ -258,41 +292,62 @@ export function ProposalProvider({ children }) {
 		enabled: !!governorAddress,
 	})
 
-	// Check and update proposal states
+	// Modified to use proposalsRef instead of proposals directly
 	useEffect(() => {
-		if (!currentBlock || !proposals.length) return
+		if (!currentBlock || !proposalsRef.current.length) return
+
+		// Skip if the block hasn't changed
+		if (currentBlock === previousBlockRef.current) return
+
+		// Use a flag to prevent multiple simultaneous updates
+		let isMounted = true
 
 		const checkProposalStates = async () => {
-			const updatedProposals = await Promise.all(
-				proposals.map(async (proposal) => {
-					// Only check proposals in Pending or Active state
-					if (proposal.state === 0 || proposal.state === 1) {
-						try {
-							const newState = await publicClient.readContract({
-								address: governorAddress,
-								abi: MyGovernor.abi,
-								functionName: 'state',
-								args: [proposal.id],
-							})
+			try {
+				const updatedProposals = await Promise.all(
+					proposalsRef.current.map(async (proposal) => {
+						// Only check proposals in Pending or Active state
+						if (proposal.state === 0 || proposal.state === 1) {
+							try {
+								const newState = await publicClient.readContract({
+									address: governorAddress,
+									abi: MyGovernor.abi,
+									functionName: 'state',
+									args: [proposal.id],
+								})
 
-							return {
-								...proposal,
-								state: Number(newState)
+								return {
+									...proposal,
+									state: Number(newState)
+								}
+							} catch (error) {
+								console.error(`Error checking state for proposal ${proposal.id}:`, error)
+								return proposal
 							}
-						} catch (error) {
-							console.error(`Error checking state for proposal ${proposal.id}:`, error)
-							return proposal
 						}
-					}
-					return proposal
-				})
-			)
+						return proposal
+					})
+				)
 
-			setProposals(updatedProposals)
+				// Only update if component is still mounted and proposals actually changed
+				if (isMounted && JSON.stringify(updatedProposals) !== JSON.stringify(proposalsRef.current)) {
+					setProposals(updatedProposals)
+				}
+			} catch (error) {
+				console.error('Error in checkProposalStates:', error)
+			}
 		}
 
-		checkProposalStates()
-	}, [currentBlock, proposals, governorAddress, publicClient])
+		// Debounce the check to avoid too many calls
+		const timeoutId = setTimeout(() => {
+			checkProposalStates()
+		}, 500)
+
+		return () => {
+			isMounted = false
+			clearTimeout(timeoutId)
+		}
+	}, [currentBlock, governorAddress, publicClient]) // Removed proposals dependency
 
 	// Check if a proposal can be executed
 	const canExecuteProposal = useCallback((eta) => {
