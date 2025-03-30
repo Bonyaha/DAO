@@ -19,7 +19,7 @@ module.exports = {
   networks: {
     hardhat: {
       mining: {
-        auto: false,
+        auto: true,
         interval: 1000 // Mine new block every second
       }
     },

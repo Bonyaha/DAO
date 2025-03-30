@@ -471,7 +471,7 @@ const ProposalListContent = () => {
 
 	}, [chain, governorAddress, fetchProposalEvents, currentNetwork, totalProposals]) */
 
-	console.log("isLoading", isLoading);
+	//console.log("isLoading", isLoading);
 
 	if (isLoading && !proposals.length) {
 		return (
@@ -514,7 +514,7 @@ const ProposalListContent = () => {
 
 //console.log("proposals", proposals);
 //console.log(`timelockPeriod: ${timelockPeriod}`);
-console.log(`totalProposals: ${totalProposals}`);
+//console.log(`totalProposals: ${totalProposals}`);
 
 	return (
 		<div className="mt-8">

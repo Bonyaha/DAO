@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import { useProposalContext } from './hooks/useProposalContext'
 
+
 // eslint-disable-next-line no-unused-vars
 const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [timeLeft, setTimeLeft] = useState('')
@@ -9,12 +10,13 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [tooltipText, setTooltipText] = useState('')
 	const [showTooltip, setShowTooltip] = useState(false)
 
-	const { currentTime, currentBlock,blockTime,canExecuteProposal } = useProposalContext()
+	const { currentTime, currentBlock, blockTime, canExecuteProposal } = useProposalContext()
 
-	//const AVERAGE_BLOCK_TIME = 15
-console.log(`blockTime: ${blockTime}`);
+console.log(`currentTime: ${currentTime}`)
+	console.log(`currentBlock: ${currentBlock}`)
+	//console.log(`blockTime: ${blockTime}`)	
 
-
+//const AVERAGE_BLOCK_TIME = 15
 	// Format time difference
 	const formatTimeLeft = useCallback((seconds) => {
 		if (seconds <= 0) return 'Ready'
@@ -137,23 +139,25 @@ console.log(`blockTime: ${blockTime}`);
 	)
 }
 
-ProposalTimingButton.propTypes = {
-	proposal: PropTypes.shape({
-		id: PropTypes.oneOfType([
-			PropTypes.string,
-			PropTypes.number,
-			PropTypes.object // For BigInt or BN objects
-		]).isRequired,
-		state: PropTypes.number.isRequired,
-		eta: PropTypes.oneOfType([
-			PropTypes.string,
-			PropTypes.number,
-			PropTypes.object // For BigInt or BN objects
-		]),
-		proposalSnapshot: PropTypes.number,
-		proposalDeadline: PropTypes.number
-	}).isRequired,
-	governorAddress: PropTypes.string.isRequired
-}
-
+	ProposalTimingButton.propTypes = {
+		proposal: PropTypes.shape({
+			id: PropTypes.oneOfType([
+				PropTypes.string,
+				PropTypes.number,
+				PropTypes.object // For BigInt or BN objects
+			]).isRequired,
+			state: PropTypes.number.isRequired,
+			eta: PropTypes.oneOfType([
+				PropTypes.string,
+				PropTypes.number,
+				PropTypes.object // For BigInt or BN objects
+			]),
+			proposalSnapshot: PropTypes.number,
+			proposalDeadline: PropTypes.number
+		}).isRequired,
+		governorAddress: PropTypes.string.isRequired
+	}
 export default ProposalTimingButton
+
+
+

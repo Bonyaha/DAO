@@ -33,22 +33,38 @@ export function ProposalProvider({ children }) {
 			if (!publicClient) return
 
 			try {
-				// Get two consecutive blocks and calculate time difference
-				const initialBlock = await publicClient.getBlock()
-				// Wait a moment and get the next block
-				await new Promise(resolve => setTimeout(resolve, 1000))
-				const nextBlock = await publicClient.getBlock()
+				// Fetch timestamps of two consecutive blocks
+				const latestBlock = await publicClient.getBlock()
+				const previousBlock = await publicClient.getBlock(latestBlock.number - 1n)
 
-				const timeDiff = Number(nextBlock.timestamp) - Number(initialBlock.timestamp)
-				setBlockTime(timeDiff > 0 ? timeDiff : 1)
+				// Calculate time difference between blocks - safely convert BigInt to Number
+				const timeDiff = Number(latestBlock.timestamp - previousBlock.timestamp)
+
+				// Update block time
+				if (timeDiff > 0) {
+					setBlockTime(timeDiff)
+				} else {
+					// Network-specific fallbacks
+					if (chain?.id === 31337) { // Hardhat local
+						setBlockTime(1) // 1 second for Hardhat
+					} else { // for Sepolia
+						setBlockTime(12) // 12 seconds as conservative estimate for Sepolia
+					}
+				}
 			} catch (error) {
 				console.error('Error detecting block time:', error)
-				setBlockTime(1) // Default to 1 second
+				// Network-specific fallbacks
+				if (chain?.id === 31337) { // Hardhat local
+					setBlockTime(1) // 1 second for Hardhat
+				} else { // for Sepolia
+					setBlockTime(12) // 12 seconds as conservative estimate for Sepolia
+				}
 			}
-		}
+		};
+
 
 		detectBlockTime()
-	}, [publicClient])
+	}, [publicClient, chain])
 
 	// Update current block number
 	useEffect(() => {
