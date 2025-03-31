@@ -296,17 +296,12 @@ export function ProposalProvider({ children }) {
 	useEffect(() => {
 		if (!currentBlock || !proposalsRef.current.length) return
 
-		// Skip if the block hasn't changed
-		if (currentBlock === previousBlockRef.current) return
-
-		// Use a flag to prevent multiple simultaneous updates
 		let isMounted = true
 
 		const checkProposalStates = async () => {
 			try {
 				const updatedProposals = await Promise.all(
 					proposalsRef.current.map(async (proposal) => {
-						// Only check proposals in Pending or Active state
 						if (proposal.state === 0 || proposal.state === 1) {
 							try {
 								const newState = await publicClient.readContract({
@@ -315,7 +310,6 @@ export function ProposalProvider({ children }) {
 									functionName: 'state',
 									args: [proposal.id],
 								})
-
 								return {
 									...proposal,
 									state: Number(newState)
@@ -329,16 +323,23 @@ export function ProposalProvider({ children }) {
 					})
 				)
 
-				// Only update if component is still mounted and proposals actually changed
-				if (isMounted && JSON.stringify(updatedProposals) !== JSON.stringify(proposalsRef.current)) {
-					setProposals(updatedProposals)
+				// Compare proposals without using JSON.stringify
+				if (isMounted) {
+					// Check if proposals have changed by comparing relevant properties
+					const hasChanged = updatedProposals.some((updated, index) => {
+						const current = proposalsRef.current[index]
+						return !current || updated.state !== current.state
+					})
+
+					if (hasChanged) {
+						setProposals(updatedProposals)
+					}
 				}
 			} catch (error) {
 				console.error('Error in checkProposalStates:', error)
 			}
 		}
 
-		// Debounce the check to avoid too many calls
 		const timeoutId = setTimeout(() => {
 			checkProposalStates()
 		}, 500)
@@ -347,7 +348,7 @@ export function ProposalProvider({ children }) {
 			isMounted = false
 			clearTimeout(timeoutId)
 		}
-	}, [currentBlock, governorAddress, publicClient]) // Removed proposals dependency
+	}, [currentBlock, governorAddress, publicClient])
 
 	// Check if a proposal can be executed
 	const canExecuteProposal = useCallback((eta) => {

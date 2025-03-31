@@ -11,7 +11,10 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	// Use refs to track the last calculation time to avoid too frequent updates
 	const lastCalculationTimeRef = useRef(0)
 
-	const { currentTime, currentBlock, blockTime, canExecuteProposal } = useProposalContext()
+	const { currentTime, currentBlock, blockTime, canExecuteProposal, proposals } = useProposalContext()
+
+	// Find the latest proposal data from the context
+	const latestProposal = proposals.find(p => p.id.toString() === proposal.id.toString())
 
 	// Format time difference
 	const formatTimeLeft = useCallback((seconds) => {
@@ -46,11 +49,13 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 		lastCalculationTimeRef.current = now
 
 		const calculateTimeLeft = () => {
+			if (!latestProposal) return
+
 			try {
-				switch (proposal.state) {
+				switch (latestProposal.state) {
 					case 0: // Pending
-						if (proposal.proposalSnapshot) {
-							const blocksUntilActive = proposal.proposalSnapshot - currentBlock
+						if (latestProposal.proposalSnapshot) {
+							const blocksUntilActive = latestProposal.proposalSnapshot - currentBlock
 
 							// Handle the case where blocks are negative (already passed)
 							if (blocksUntilActive <= 0) {
@@ -70,8 +75,8 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 						break
 
 					case 1: // Active
-						if (proposal.proposalDeadline) {
-							const blocksUntilDeadline = proposal.proposalDeadline - currentBlock
+						if (latestProposal.proposalDeadline) {
+							const blocksUntilDeadline = latestProposal.proposalDeadline - currentBlock
 
 							// Handle the case where blocks are negative (already passed)
 							if (blocksUntilDeadline <= 0) {
@@ -91,8 +96,8 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 						break
 
 					case 5: // Queued
-						if (proposal.eta) {
-							const secondsUntilExecution = proposal.eta - currentTime
+						if (latestProposal.eta) {
+							const secondsUntilExecution = latestProposal.eta - currentTime
 							if (secondsUntilExecution > 0) {
 								setTimeLeft(formatTimeLeft(secondsUntilExecution))
 								setTooltipText(`Ready for execution in ${formatTimeLeft(secondsUntilExecution)}`)
@@ -133,7 +138,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 		const interval = setInterval(calculateTimeLeft, 1000)
 		return () => clearInterval(interval)
 
-	}, [proposal, currentTime, currentBlock, formatTimeLeft, blocksToTime])
+	}, [latestProposal, currentTime, currentBlock, formatTimeLeft, blocksToTime])
 
 	if (!timeLeft) return null
 
@@ -143,7 +148,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 				className={`${buttonStyle.bg} ${buttonStyle.text} px-3 py-1 rounded-full text-sm ${buttonStyle.hover} transition-colors duration-200`}
 				onMouseEnter={() => setShowTooltip(true)}
 				onMouseLeave={() => setShowTooltip(false)}
-				data-ready={proposal.state === 5 && canExecuteProposal(proposal.eta)}
+				data-ready={latestProposal?.state === 5 && canExecuteProposal(latestProposal.eta)}
 			>
 				<span className="flex items-center">
 					<svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
