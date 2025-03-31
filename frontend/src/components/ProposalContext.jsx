@@ -301,31 +301,31 @@ export function ProposalProvider({ children }) {
 		const checkProposalStates = async () => {
 			try {
 				const updatedProposals = await Promise.all(
-					proposalsRef.current.map(async (proposal) => {
-						if (proposal.state === 0 || proposal.state === 1) {
-							try {
-								const newState = await publicClient.readContract({
-									address: governorAddress,
-									abi: MyGovernor.abi,
-									functionName: 'state',
-									args: [proposal.id],
-								})
+					proposalsRef.current.map(async (proposal) => {						
+						try {
+							const newState = await publicClient.readContract({
+								address: governorAddress,
+								abi: MyGovernor.abi,
+								functionName: 'state',
+								args: [proposal.id],
+							})
+						
+							if (Number(newState) !== proposal.state) {
 								return {
 									...proposal,
 									state: Number(newState)
 								}
-							} catch (error) {
-								console.error(`Error checking state for proposal ${proposal.id}:`, error)
-								return proposal
 							}
+							return proposal
+						} catch (error) {
+							console.error(`Error checking state for proposal ${proposal.id}:`, error)
+							return proposal
 						}
-						return proposal
 					})
 				)
 
-				// Compare proposals without using JSON.stringify
+				// Compare proposals and update if changed
 				if (isMounted) {
-					// Check if proposals have changed by comparing relevant properties
 					const hasChanged = updatedProposals.some((updated, index) => {
 						const current = proposalsRef.current[index]
 						return !current || updated.state !== current.state
@@ -338,7 +338,7 @@ export function ProposalProvider({ children }) {
 			} catch (error) {
 				console.error('Error in checkProposalStates:', error)
 			}
-		}
+		};
 
 		const timeoutId = setTimeout(() => {
 			checkProposalStates()

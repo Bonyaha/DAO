@@ -43,7 +43,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	useEffect(() => {
 		// Skip too frequent updates (throttle to once per second)
 		const now = Date.now()
-		if (now - lastCalculationTimeRef.current < 1000) {
+		if (now - lastCalculationTimeRef.current < 200) {
 			return
 		}
 		lastCalculationTimeRef.current = now
