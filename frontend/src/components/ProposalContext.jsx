@@ -7,7 +7,6 @@ import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/Governan
 import addresses from '../addresses.json'
 import { ProposalContext } from './hooks/useProposalContext'
 
-// Add this utility function for debouncing
 const useDebounce = (value, delay) => {
 	const [debouncedValue, setDebouncedValue] = useState(value)
 
@@ -151,6 +150,24 @@ export function ProposalProvider({ children }) {
 		}
 	}, [userVotingPower])
 
+	const hasUserVoted = useCallback(async (proposalId) => {
+		if (!address || !governorAddress || !publicClient) return false
+
+		try {
+			const hasVoted = await publicClient.readContract({
+				address: governorAddress,
+				abi: MyGovernor.abi,
+				functionName: 'hasVoted',
+				args: [proposalId, address],
+			})
+
+			return hasVoted
+		} catch (error) {
+			console.error('Error checking if user voted:', error)
+			return false
+		}
+	}, [address, governorAddress, publicClient])
+
 	// Fetch proposals
 	const fetchProposals = useCallback(async () => {
 		if (!governorAddress || !publicClient) return
@@ -222,6 +239,11 @@ export function ProposalProvider({ children }) {
 					}
 				}
 
+				let userHasVoted = false
+				if (address) {
+					userHasVoted = await hasUserVoted(proposalId)
+				}
+
 				const [title, desc] = description.split(':').map((s) => s.trim())
 				return {
 					id: proposalId,
@@ -237,7 +259,8 @@ export function ProposalProvider({ children }) {
 					descriptionHash: ethers.id(description),
 					eta: eta,
 					proposalSnapshot: Number(proposalSnapshot),
-					proposalDeadline: Number(proposalDeadline)
+					proposalDeadline: Number(proposalDeadline),
+					hasVoted: userHasVoted
 				}
 			})
 
@@ -250,7 +273,7 @@ export function ProposalProvider({ children }) {
 		} finally {
 			setIsLoading(false)
 		}
-	}, [governorAddress, publicClient])
+	}, [governorAddress, publicClient,address,hasUserVoted])
 
 	// Fetch proposals on mount and when governor address changes
 	useEffect(() => {
@@ -363,6 +386,7 @@ export function ProposalProvider({ children }) {
 		governorAddress,
 		votingPower,
 		isLoading,
+		hasUserVoted,
 
 		// Timing-related
 		currentTime,

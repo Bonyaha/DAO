@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useProposalContext } from './hooks/useProposalContext'
 
+// eslint-disable-next-line no-unused-vars
 const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [timeLeft, setTimeLeft] = useState('')
 	const [buttonStyle, setButtonStyle] = useState({})
