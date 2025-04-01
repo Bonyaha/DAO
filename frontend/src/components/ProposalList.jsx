@@ -139,8 +139,8 @@ const ProposalListContent = () => {
 		if (!timestamp) return ''
 
 		const date = new Date(timestamp * 1000)
-		console.log('Raw timestamp (seconds):', timestamp)
-		console.log('UTC time:', date.toUTCString())
+		//console.log('Raw timestamp (seconds):', timestamp)
+		//console.log('UTC time:', date.toUTCString())
 
 		const formatted = new Intl.DateTimeFormat('default', {
 			year: 'numeric',
@@ -148,9 +148,10 @@ const ProposalListContent = () => {
 			day: 'numeric',
 			hour: '2-digit',
 			minute: '2-digit',
+			hour12: false,
 			timeZone: 'Europe/Kyiv',
 		}).format(date);
-		console.log('Formatted local time (Europe/Kyiv):', formatted)
+		//console.log('Formatted local time (Europe/Kyiv):', formatted)
 		return formatted
 	};
 
@@ -167,9 +168,11 @@ const ProposalListContent = () => {
 				<span className={`px-3 py-1 rounded-full text-sm ${statusClass}`}>
 					{statusText}
 				</span>
-				{statusText === 'Executed' && proposal.executedAt && (
+				{statusText === 'Executed' && (
 					<span className="ml-2 text-sm text-gray-600">
-						{formatDate(proposal.executedAt)}
+						{proposal.executedAt && proposal.executedAt > 0 ?
+							formatDate(proposal.executedAt) :
+							"Processing..."}
 					</span>
 				)}
 			</div>
@@ -201,7 +204,7 @@ const ProposalListContent = () => {
 		}
 	};
 
-console.log("proposals", proposals);
+	//console.log("proposals", paginatedProposals);
 //console.log(`timelockPeriod: ${timelockPeriod}`);
 //console.log(`totalProposals: ${totalProposals}`);
 

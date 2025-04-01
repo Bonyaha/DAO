@@ -76,7 +76,7 @@ export function ProposalProvider({ children }) {
 					// Network-specific fallbacks
 					if (chain?.id === 31337) { // Hardhat local
 						setBlockTime(1) // 1 second for Hardhat
-					} else { // for Sepolia
+					} else { // for Sepolia		
 						setBlockTime(12) // 12 seconds as conservative estimate for Sepolia
 					}
 				}
@@ -272,6 +272,7 @@ export function ProposalProvider({ children }) {
 				}
 
 				const [title, desc] = description.split(':').map((s) => s.trim())
+
 				return {
 					id: proposalId,
 					title,
