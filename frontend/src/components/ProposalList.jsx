@@ -135,6 +135,46 @@ const ProposalListContent = () => {
 
 	//console.log('Rendering ProposalList with proposals:', proposals)
 
+	const formatDate = (timestamp) => {
+		if (!timestamp) return ''
+
+		const date = new Date(timestamp * 1000)
+		console.log('Raw timestamp (seconds):', timestamp)
+		console.log('UTC time:', date.toUTCString())
+
+		const formatted = new Intl.DateTimeFormat('default', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+			timeZone: 'Europe/Kyiv',
+		}).format(date);
+		console.log('Formatted local time (Europe/Kyiv):', formatted)
+		return formatted
+	};
+
+	const renderProposalStatus = (proposal) => {
+		const statusText = ProposalStatusMap[proposal.state]
+		const statusClass = ['Succeeded', 'Executed'].includes(statusText)
+			? 'bg-green-100 text-green-800'
+			: ['Defeated', 'Canceled', 'Expired'].includes(statusText)
+				? 'bg-red-100 text-red-800'
+				: 'bg-blue-100 text-blue-800'
+
+		return (
+			<div className="flex items-center">
+				<span className={`px-3 py-1 rounded-full text-sm ${statusClass}`}>
+					{statusText}
+				</span>
+				{statusText === 'Executed' && proposal.executedAt && (
+					<span className="ml-2 text-sm text-gray-600">
+						{formatDate(proposal.executedAt)}
+					</span>
+				)}
+			</div>
+		)
+	};
 	// Execute button rendering in the JSX
 	const renderExecuteButton = (proposal) => {
 		if (proposal.state !== 5) return null
@@ -161,7 +201,7 @@ const ProposalListContent = () => {
 		}
 	};
 
-//console.log("proposals", proposals);
+console.log("proposals", proposals);
 //console.log(`timelockPeriod: ${timelockPeriod}`);
 //console.log(`totalProposals: ${totalProposals}`);
 
@@ -188,16 +228,7 @@ const ProposalListContent = () => {
 								<div className="flex justify-between items-center mt-4">
 									{/* Updated status section with timing button */}
 									<div className="flex items-center">
-										<span
-											className={`px-3 py-1 rounded-full text-sm ${['Succeeded', 'Executed'].includes(ProposalStatusMap[proposal.state])
-												? 'bg-green-100 text-green-800'
-												: ['Defeated', 'Canceled', 'Expired'].includes(ProposalStatusMap[proposal.state])
-													? 'bg-red-100 text-red-800'
-													: 'bg-blue-100 text-blue-800'
-												}`}
-										>
-											{ProposalStatusMap[proposal.state]}
-										</span>
+											{renderProposalStatus(proposal)}
 										<div className="ml-2">
 											<ProposalTimingButton
 												proposal={{

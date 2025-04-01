@@ -46,7 +46,7 @@ export function ProposalProvider({ children }) {
 	const { address, chain } = useAccount()
 	const publicClient = usePublicClient()
 	const { data: blockNumberData } = useBlockNumber({ watch: true })
-	console.log(`blockNumberData: ${blockNumberData}`)
+	//console.log(`blockNumberData: ${blockNumberData}`)
 
 	// Debounce block number updates to prevent too frequent state changes
 	const debouncedBlockNumber = useDebounce(blockNumberData, 1000)
@@ -244,6 +244,33 @@ export function ProposalProvider({ children }) {
 					userHasVoted = await hasUserVoted(proposalId)
 				}
 
+				let executedAt = 0
+				if (Number(state) === 7) { // 7 is 'Executed'
+					try {
+						// Try to get execution data from events
+						const executionEvents = await publicClient.getContractEvents({
+							address: governorAddress,
+							abi: MyGovernor.abi,
+							eventName: 'ProposalExecuted',
+							args: {
+								proposalId: proposalId
+							},
+							fromBlock: 'earliest',
+							toBlock: 'latest'
+						})
+
+						if (executionEvents.length > 0) {
+							// Get the block timestamp for when the proposal was executed
+							const block = await publicClient.getBlock({
+								blockNumber: executionEvents[0].blockNumber
+							})
+							executedAt = Number(block.timestamp)
+						}
+					} catch (error) {
+						console.error('Error fetching execution timestamp:', error)
+					}
+				}
+
 				const [title, desc] = description.split(':').map((s) => s.trim())
 				return {
 					id: proposalId,
@@ -260,7 +287,8 @@ export function ProposalProvider({ children }) {
 					eta: eta,
 					proposalSnapshot: Number(proposalSnapshot),
 					proposalDeadline: Number(proposalDeadline),
-					hasVoted: userHasVoted
+					hasVoted: userHasVoted,
+					executedAt
 				}
 			})
 
