@@ -170,139 +170,204 @@ export function ProposalProvider({ children }) {
 
 	// Fetch proposals
 	const fetchProposals = useCallback(async () => {
-		if (!governorAddress || !publicClient) return
+		if (!governorAddress || !publicClient || !chain) return
 
 		setIsLoading(true)
 		try {
-			// Fetch proposal created events
+			// Fetch all ProposalCreated events
 			const events = await publicClient.getContractEvents({
 				address: governorAddress,
 				abi: MyGovernor.abi,
-				eventName: 'ProposalCreated',
-				fromBlock: 'earliest',
-				toBlock: 'latest'
+				eventName: "ProposalCreated",
+				fromBlock: "earliest",
+				toBlock: "latest",
 			})
 
-			// Sort events by block number
 			events.sort((a, b) => Number(b.blockNumber) - Number(a.blockNumber))
 			setTotalProposals(events.length)
 
-			// Fetch proposal details
-			const proposalPromises = events.map(async (event) => {
+			const proposalBasics = events.map((event) => {
 				const { proposalId, description, targets, values, calldatas } = event.args
-
-				// Get proposal state
-				const state = await publicClient.readContract({
-					address: governorAddress,
-					abi: MyGovernor.abi,
-					functionName: 'state',
-					args: [proposalId],
-				})
-
-				// Get proposal snapshot and deadline
-				const [proposalSnapshot, proposalDeadline] = await Promise.all([
-					publicClient.readContract({
-						address: governorAddress,
-						abi: MyGovernor.abi,
-						functionName: 'proposalSnapshot',
-						args: [proposalId],
-					}),
-					publicClient.readContract({
-						address: governorAddress,
-						abi: MyGovernor.abi,
-						functionName: 'proposalDeadline',
-						args: [proposalId],
-					})
-				])
-
-				// Get proposal votes
-				const proposalVotes = await publicClient.readContract({
-					address: governorAddress,
-					abi: MyGovernor.abi,
-					functionName: 'proposalVotes',
-					args: [proposalId],
-				})
-
-				// Get proposal ETA if queued
-				let eta = 0
-				if (Number(state) === 5) { // 5 is 'Queued'
-					try {
-						eta = await publicClient.readContract({
-							address: governorAddress,
-							abi: MyGovernor.abi,
-							functionName: 'proposalEta',
-							args: [proposalId],
-						})
-						eta = Number(eta)
-					} catch (error) {
-						console.error('Error fetching proposal ETA:', error)
-					}
-				}
-
-				let userHasVoted = false
-				if (address) {
-					userHasVoted = await hasUserVoted(proposalId)
-				}
-
-				let executedAt = 0
-				if (Number(state) === 7) { // 7 is 'Executed'
-					try {
-						// Try to get execution data from events
-						const executionEvents = await publicClient.getContractEvents({
-							address: governorAddress,
-							abi: MyGovernor.abi,
-							eventName: 'ProposalExecuted',
-							args: {
-								proposalId: proposalId
-							},
-							fromBlock: 'earliest',
-							toBlock: 'latest'
-						})
-
-						if (executionEvents.length > 0) {
-							// Get the block timestamp for when the proposal was executed
-							const block = await publicClient.getBlock({
-								blockNumber: executionEvents[0].blockNumber
-							})
-							executedAt = Number(block.timestamp)
-						}
-					} catch (error) {
-						console.error('Error fetching execution timestamp:', error)
-					}
-				}
-
-				const [title, desc] = description.split(':').map((s) => s.trim())
-
+				const [title, desc] = description.split(":").map((s) => s.trim())
 				return {
 					id: proposalId,
 					title,
 					description: desc,
-					state: Number(state),
-					forVotes: ethers.formatEther(proposalVotes[1]),
-					againstVotes: ethers.formatEther(proposalVotes[0]),
-					abstainVotes: ethers.formatEther(proposalVotes[2]),
 					targets,
 					values,
 					calldatas,
 					descriptionHash: ethers.id(description),
-					eta: eta,
-					proposalSnapshot: Number(proposalSnapshot),
-					proposalDeadline: Number(proposalDeadline),
-					hasVoted: userHasVoted,
-					executedAt
 				}
 			})
 
-			const proposalData = await Promise.all(proposalPromises)
-			// Use functional update to avoid dependency on previous state
-			setProposals(proposalData)
-			//previousProposalsRef.current = proposalData
+			let proposalData
+
+			// Check if we're on Hardhat (chain ID 31337)
+			if (chain.id === 31337) {
+				// Fallback to individual calls for Hardhat
+				proposalData = await Promise.all(
+					proposalBasics.map(async (proposal) => {
+						const state = await publicClient.readContract({
+							address: governorAddress,
+							abi: MyGovernor.abi,
+							functionName: "state",
+							args: [proposal.id],
+						})
+
+						const snapshot = await publicClient.readContract({
+							address: governorAddress,
+							abi: MyGovernor.abi,
+							functionName: "proposalSnapshot",
+							args: [proposal.id],
+						})
+
+						const deadline = await publicClient.readContract({
+							address: governorAddress,
+							abi: MyGovernor.abi,
+							functionName: "proposalDeadline",
+							args: [proposal.id],
+						})
+
+						const votes = await publicClient.readContract({
+							address: governorAddress,
+							abi: MyGovernor.abi,
+							functionName: "proposalVotes",
+							args: [proposal.id],
+						})
+
+						let eta = 0
+						if (Number(state) === 5) {
+							// Queued
+							eta = await publicClient.readContract({
+								address: governorAddress,
+								abi: MyGovernor.abi,
+								functionName: "proposalEta",
+								args: [proposal.id],
+							})
+						}
+
+						const hasVoted = address
+							? await hasUserVoted(proposal.id)
+							: false
+
+						return {
+							...proposal,
+							state: Number(state),
+							proposalSnapshot: Number(snapshot),
+							proposalDeadline: Number(deadline),
+							forVotes: ethers.formatEther(votes[1]),
+							againstVotes: ethers.formatEther(votes[0]),
+							abstainVotes: ethers.formatEther(votes[2]),
+							eta: Number(eta),
+							hasVoted,
+						}
+					})
+				)
+			} else {
+				// Use multicall for supported networks
+				const calls = proposalBasics.flatMap((proposal) => [
+					{
+						address: governorAddress,
+						abi: MyGovernor.abi,
+						functionName: "state",
+						args: [proposal.id],
+					},
+					{
+						address: governorAddress,
+						abi: MyGovernor.abi,
+						functionName: "proposalSnapshot",
+						args: [proposal.id],
+					},
+					{
+						address: governorAddress,
+						abi: MyGovernor.abi,
+						functionName: "proposalDeadline",
+						args: [proposal.id],
+					},
+					{
+						address: governorAddress,
+						abi: MyGovernor.abi,
+						functionName: "proposalVotes",
+						args: [proposal.id],
+					},
+					{
+						address: governorAddress,
+						abi: MyGovernor.abi,
+						functionName: "proposalEta",
+						args: [proposal.id],
+					},
+					...(address
+						? [
+							{
+								address: governorAddress,
+								abi: MyGovernor.abi,
+								functionName: "hasVoted",
+								args: [proposal.id, address],
+							},
+						]
+						: []),
+				])
+
+				const multicallResults = await publicClient.multicall({ contracts: calls })
+
+				let resultIndex = 0
+				proposalData = proposalBasics.map((basic) => {
+					const state = multicallResults[resultIndex++].result
+					const snapshot = multicallResults[resultIndex++].result
+					const deadline = multicallResults[resultIndex++].result
+					const votes = multicallResults[resultIndex++].result
+					const eta = multicallResults[resultIndex++].result
+					const hasVoted = address ? multicallResults[resultIndex++].result : false
+
+					return {
+						...basic,
+						state: Number(state),
+						proposalSnapshot: Number(snapshot),
+						proposalDeadline: Number(deadline),
+						forVotes: ethers.formatEther(votes[1]),
+						againstVotes: ethers.formatEther(votes[0]),
+						abstainVotes: ethers.formatEther(votes[2]),
+						eta: Number(eta),
+						hasVoted,
+					}
+				})
+			}
+
+			// Fetch execution timestamps for executed proposals
+			const executedEvents = await publicClient.getContractEvents({
+				address: governorAddress,
+				abi: MyGovernor.abi,
+				eventName: "ProposalExecuted",
+				fromBlock: "earliest",
+				toBlock: "latest",
+			})
+
+			const executionTimestamps = await Promise.all(
+				executedEvents.map(async (event) => {
+					const block = await publicClient.getBlock({ blockNumber: event.blockNumber })
+					return {
+						proposalId: event.args.proposalId,
+						executedAt: Number(block.timestamp),
+					}
+				})
+			)
+
+			// Merge execution timestamps
+			const finalProposals = proposalData.map((proposal) => {
+				const execInfo = executionTimestamps.find((e) => e.proposalId === proposal.id)
+				return {
+					...proposal,
+					executedAt: execInfo ? execInfo.executedAt : 0,
+				}
+			})
+
+			setProposals(finalProposals)
 		} catch (error) {
-			console.error('Error fetching proposals:', error)
+			console.error("Error fetching proposals:", error)
 		} finally {
 			setIsLoading(false)
 		}
-	}, [governorAddress, publicClient,address,hasUserVoted])
+	}, [governorAddress, publicClient, chain, address, hasUserVoted]);
 
 	// Fetch proposals on mount and when governor address changes
 	useEffect(() => {
@@ -352,7 +417,7 @@ export function ProposalProvider({ children }) {
 		const checkProposalStates = async () => {
 			try {
 				const updatedProposals = await Promise.all(
-					proposalsRef.current.map(async (proposal) => {						
+					proposalsRef.current.map(async (proposal) => {
 						try {
 							const newState = await publicClient.readContract({
 								address: governorAddress,
@@ -360,7 +425,7 @@ export function ProposalProvider({ children }) {
 								functionName: 'state',
 								args: [proposal.id],
 							})
-						
+
 							if (Number(newState) !== proposal.state) {
 								return {
 									...proposal,
@@ -389,7 +454,7 @@ export function ProposalProvider({ children }) {
 			} catch (error) {
 				console.error('Error in checkProposalStates:', error)
 			}
-		};
+		}
 
 		const timeoutId = setTimeout(() => {
 			checkProposalStates()
