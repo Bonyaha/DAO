@@ -344,7 +344,6 @@ export function ProposalProvider({ children }) {
 		enabled: !!governorAddress,
 	})
 
-	// Modified to use proposalsRef instead of proposals directly
 	useEffect(() => {
 		if (!currentBlock || !proposalsRef.current.length) return
 

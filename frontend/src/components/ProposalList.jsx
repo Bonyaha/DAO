@@ -1,12 +1,7 @@
-import { /* useEffect, */ useState, /* useCallback */ } from 'react'
-import { /* useReadContract, */ useWriteContract, /* useWatchContractEvent, useAccount, usePublicClient, useBlockNumber */ } from 'wagmi'
-//import { ethers } from 'ethers'
+import { useState} from 'react'
+import { useWriteContract } from 'wagmi'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
-//import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
-//import TimelockController from '../TimelockController.json'
-//import addresses from '../addresses.json'
 import ProposalTimingButton from './ProposalTimingButton'
-//import { TimingProvider } from './TimingContext';
 import { useProposalContext } from './hooks/useProposalContext'
 
 const ProposalStatusMap = {
@@ -40,7 +35,7 @@ const ProposalListContent = () => {
 	const [showAbstainTooltip, setShowAbstainTooltip] = useState(false)
 
 	const { writeContract: castVote, isPending: votingInProgress } = useWriteContract()
-	const { /* data: executionHash */ writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
+	const { writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
 	const { writeContract: queueProposal, isPending: queueInProgress } = useWriteContract()
 
 	const startIdx = page * PROPOSALS_PER_PAGE

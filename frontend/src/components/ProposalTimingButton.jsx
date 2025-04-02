@@ -33,7 +33,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 			remainingSeconds > 0 ? `${remainingSeconds}s` : ''
 		].filter(Boolean).join(' ') || 'Ready'
 	}, [])
-console.log(`blockTime: ${blockTime}`);
+//console.log(`blockTime: ${blockTime}`);
 
 	// Convert blocks to approximate time
 	const blocksToTime = useCallback((blocks) => {
