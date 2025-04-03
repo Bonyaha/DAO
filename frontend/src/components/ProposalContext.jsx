@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { usePublicClient, useWatchContractEvent, useReadContract, useBlockNumber, useAccount } from 'wagmi'
 import { ethers } from 'ethers'
@@ -382,7 +382,7 @@ export function ProposalProvider({ children }) {
 		return eta > 0 && currentTime >= eta
 	}, [currentTime])
 
-	const contextValue = {
+	const contextValue = useMemo(() => ({
 		proposals,
 		totalProposals,
 		governorAddress,
@@ -394,7 +394,19 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals: fetchAllProposals,
-	}
+	}), [
+		proposals,
+		totalProposals,
+		governorAddress,
+		votingPower,
+		isLoading,
+		hasUserVoted,
+		currentTime,
+		currentBlock,
+		canExecuteProposal,
+		blockTime,
+		fetchAllProposals,
+	])
 
 	return (
 		<ProposalContext.Provider value={contextValue}>
