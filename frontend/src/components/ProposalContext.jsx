@@ -25,7 +25,7 @@ export function ProposalProvider({ children }) {
 
 
 	// Using timing hook
-	const { currentTime, currentBlock, blockTime } = useTiming(publicClient)
+	const { currentTime, currentBlock, blockTime } = useTiming({ publicClient, chain })
 
 	// Use voting power hook
 	const { votingPower } = useVotingPower({ tokenAddress, address })

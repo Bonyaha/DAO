@@ -69,5 +69,6 @@ export function useTiming({ publicClient, chain }) {
 		return () => clearInterval(interval)
 	}, [publicClient])
 
+
 	return { currentTime, currentBlock, blockTime }
 }
