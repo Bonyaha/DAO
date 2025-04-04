@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { useWriteContract } from 'wagmi'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import ProposalTimingButton from './ProposalTimingButton'
+import VoteButton from './VoteButton'
 import { useProposalContext } from './hooks/useProposalContext'
 
 const ProposalStatusMap = {
@@ -16,6 +17,8 @@ const ProposalStatusMap = {
 }
 
 const PROPOSALS_PER_PAGE = 5
+
+
 
 const ProposalListContent = () => {
 	const {
@@ -58,7 +61,7 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error voting:', error)
 		}
-	},[	governorAddress, castVote])
+	}, [governorAddress, castVote])
 
 	const handleQueue = useCallback(async (proposal) => {
 		try {
@@ -72,7 +75,7 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error queuing proposal:', error)
 		}
-	}	, [governorAddress, queueProposal])
+	}, [governorAddress, queueProposal])
 
 	const handleExecute = useCallback(async (proposal) => {
 		// Double-check if proposal can be executed with fresh timestamp
@@ -106,30 +109,19 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error executing proposal:', error)
 		}
-	}	, [governorAddress, executeProposal, canExecuteProposal, currentTime])
+	}, [governorAddress, executeProposal, canExecuteProposal, currentTime])
 
 	const handleNextPage = useCallback(() => {
 		if ((page + 1) * PROPOSALS_PER_PAGE < totalProposals) {
 			setPage(page + 1)
 		}
-	}	, [page, totalProposals])
+	}, [page, totalProposals])
 
 	const handlePrevPage = useCallback(() => {
 		if (page > 0) {
 			setPage(page - 1)
 		}
-	}	, [page])
-
-	if (isLoading && !proposals.length) {
-		return (
-			<div className="mt-8">
-				<h2 className="text-2xl font-bold mb-4">Proposals</h2>	
-				<div className="flex justify-center items-center h-32">
-					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-				</div>
-			</div>
-		)
-	}
+	}, [page])
 
 	//console.log('Rendering ProposalList with proposals:', proposals)
 
@@ -202,6 +194,17 @@ const ProposalListContent = () => {
 		}
 	}
 
+	if (isLoading && !proposals.length) {
+		return (
+			<div className="mt-8">
+				<h2 className="text-2xl font-bold mb-4">Proposals</h2>
+				<div className="flex justify-center items-center h-32">
+					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="mt-8">
 			<h2 className="text-2xl font-bold mb-4">Proposals</h2>
@@ -228,7 +231,13 @@ const ProposalListContent = () => {
 			) : (
 				<>
 					<div className="space-y-4">
-						{paginatedProposals.map((proposal) => (
+						{paginatedProposals.map((proposal) => {
+							const isVoteDisabled = votingInProgress || votingPower <= 0 || proposal.hasVoted
+							const tooltipText = proposal.hasVoted
+								? 'You have already voted on this proposal'
+								: 'You need voting power to vote'
+
+return(
 							<div key={proposal.id.toString()} className="bg-white p-6 rounded-lg shadow-md">
 								<h3 className="text-xl font-bold">{proposal.title}</h3>
 								<p className="my-2 text-gray-700">{proposal.description}</p>
@@ -249,83 +258,38 @@ const ProposalListContent = () => {
 									<div className="space-x-2">
 										{proposal.state === 1 && (
 											<>
-												<div
-													className="relative inline-block"
-													onMouseEnter={() => setShowForTooltip(true)}
-													onMouseLeave={() => setShowForTooltip(false)}
-												>
-													<button
-														onClick={() => handleVote(proposal.id, 1)}
-														className={`${votingPower > 0 && !proposal.hasVoted
-															? 'bg-green-500 hover:bg-green-600'
-															: 'bg-green-300 cursor-not-allowed'
-															} text-white px-3 py-1 rounded`}
-														disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
-													>
-														For
-													</button>
-													{showForTooltip && (proposal.hasVoted || votingPower <= 0) && (
-														<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-															{proposal.hasVoted
-																? 'You have already voted on this proposal'
-																: votingPower <= 0
-																	? 'You need voting power to vote'
-																	: ''}
-														</div>
-													)}
-												</div>
+						<VoteButton
+							onVote={() => handleVote(proposal.id, 1)}
+							label="For"
+							activeColor="bg-green-500"
+							disabledColor="bg-green-300 cursor-not-allowed"
+							isDisabled={isVoteDisabled}
+							showTooltip={showForTooltip}
+							setShowTooltip={setShowForTooltip}
+							tooltipText={tooltipText}
+						/>
 
-												<div
-													className="relative inline-block"
-													onMouseEnter={() => setShowAgainstTooltip(true)}
-													onMouseLeave={() => setShowAgainstTooltip(false)}
-												>
-													<button
-														onClick={() => handleVote(proposal.id, 0)}
-														className={`${votingPower > 0 && !proposal.hasVoted
-															? 'bg-red-500 hover:bg-red-600'
-															: 'bg-red-300 cursor-not-allowed'
-															} text-white px-3 py-1 rounded`}
-														disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
-													>
-														Against
-													</button>
-													{showAgainstTooltip && (proposal.hasVoted || votingPower <= 0) && (
-														<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-															{proposal.hasVoted
-																? 'You have already voted on this proposal'
-																: votingPower <= 0
-																	? 'You need voting power to vote'
-																	: ''}
-														</div>
-													)}
-												</div>
+						<VoteButton
+							onVote={() => handleVote(proposal.id, 0)}
+							label="Against"
+							activeColor="bg-red-500"
+							disabledColor="bg-red-300 cursor-not-allowed"
+							isDisabled={isVoteDisabled}
+							showTooltip={showAgainstTooltip}
+							setShowTooltip={setShowAgainstTooltip}
+							tooltipText={tooltipText}
+						/>
 
-												<div
-													className="relative inline-block"
-													onMouseEnter={() => setShowAbstainTooltip(true)}
-													onMouseLeave={() => setShowAbstainTooltip(false)}
-												>
-													<button
-														onClick={() => handleVote(proposal.id, 2)}
-														className={`${votingPower > 0 && !proposal.hasVoted
-															? 'bg-gray-500 hover:bg-gray-600'
-															: 'bg-gray-300 cursor-not-allowed'
-															} text-white px-3 py-1 rounded`}
-														disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
-													>
-														Abstain
-													</button>
-													{showAbstainTooltip && (proposal.hasVoted || votingPower <= 0) && (
-														<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-															{proposal.hasVoted
-																? 'You have already voted on this proposal'
-																: votingPower <= 0
-																	? 'You need voting power to vote'
-																	: ''}
-														</div>
-													)}
-												</div>
+						<VoteButton
+							onVote={() => handleVote(proposal.id, 2)}
+							label="Abstain"
+							activeColor="bg-gray-500"
+							disabledColor="bg-gray-300 cursor-not-allowed"
+							isDisabled={isVoteDisabled}
+							showTooltip={showAbstainTooltip}
+							setShowTooltip={setShowAbstainTooltip}
+							tooltipText={tooltipText}
+						/>
 											</>
 										)}
 										{proposal.state === 4 && (
@@ -346,8 +310,9 @@ const ProposalListContent = () => {
 									<p>Abstained: {proposal.abstainVotes}</p>
 								</div>
 							</div>
-						))}
-					</div>
+							)
+						})}
+						</div>
 					{totalProposals > PROPOSALS_PER_PAGE && (
 						<div className="flex justify-between items-center mt-6">
 							<button
