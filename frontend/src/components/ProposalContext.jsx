@@ -5,7 +5,7 @@ import addresses from '../addresses.json'
 import { ProposalContext } from './hooks/useProposalContext'
 import { useTiming } from './hooks/useTiming'
 import { useVotingPower } from './hooks/useVotingPower'
-import { useProposals } from './hooks/useProposal'
+import { useProposals } from './hooks/useProposals'
 
 
 export function ProposalProvider({ children }) {

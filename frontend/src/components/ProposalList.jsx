@@ -146,11 +146,11 @@ const ProposalListContent = () => {
 			hour12: false,
 			timeZone: 'Europe/Kyiv',
 		}).format(date);
-		//console.log('Formatted local time (Europe/Kyiv):', formatted)
+		
 		return formatted
 	};
 
-	const renderProposalStatus = (proposal) => {
+	const renderProposalStatus = (proposal) => {		
 		const statusText = ProposalStatusMap[proposal.state]
 		const statusClass = ['Succeeded', 'Executed'].includes(statusText)
 			? 'bg-green-100 text-green-800'
