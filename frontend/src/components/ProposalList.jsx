@@ -26,7 +26,7 @@ const ProposalListContent = () => {
 		canExecuteProposal,
 		currentTime,
 		isLoading,
-		error
+		errors
 	} = useProposalContext()
 
 
@@ -207,9 +207,14 @@ const ProposalListContent = () => {
 	return (
 		<div className="mt-8">
 			<h2 className="text-2xl font-bold mb-4">Proposals</h2>
-			{error && (
+			{errors.proposals && (
 				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-					<p>{error}</p>
+					<p>{errors.proposals}</p>
+				</div>
+			)}
+			{errors.timing && (
+				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+					<p>{errors.timing}</p>
 				</div>
 			)}
 			{votingPower === 0 && (

@@ -29,7 +29,7 @@ function ActionButtons() {
 	const [isCanceling, setIsCanceling] = useState(false)
 
 	const { chain, address } = useAccount()
-	const { proposals } = useProposalContext()
+	const { proposals,errors } = useProposalContext()
 
 	// Get the latest proposal, assuming proposals are sorted by block number
 	const latestProposal = proposals.length > 0 ? proposals[0] : null
@@ -385,7 +385,7 @@ function ActionButtons() {
 	return (
 		<>
 			<div className="flex flex-col items-center w-full">
-				{/* Error Alert */}
+				{/* Transaction Error Alert */}
 				{showError && (
 					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
 						<strong className="font-bold">Error: </strong>
@@ -396,6 +396,14 @@ function ActionButtons() {
 						>
 							<span className="text-red-500">×</span>
 						</span>
+					</div>
+				)}
+
+				{/* Proposal Error Alert */}
+				{errors?.proposals && (
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
+						<strong className="font-bold">Proposal Error: </strong>
+						<span className="block sm:inline">{errors.proposals}</span>
 					</div>
 				)}
 

@@ -12,7 +12,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	// Use refs to track the last calculation time to avoid too frequent updates
 	const lastCalculationTimeRef = useRef(0)
 
-	const { currentTime, currentBlock, blockTime, canExecuteProposal, proposals } = useProposalContext()
+	const { currentTime, currentBlock, blockTime, canExecuteProposal, proposals,errors } = useProposalContext()
 
 	// Find the latest proposal data from the context
 	const latestProposal = proposals.find(p => p.id.toString() === proposal.id.toString())
@@ -43,7 +43,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 
 	// Calculate time left based on proposal state
 	useEffect(() => {
-		// Skip too frequent updates (throttle to once per second)
+		// Skip too frequent updates
 		const now = Date.now()
 		if (now - lastCalculationTimeRef.current < 200) {
 			return
@@ -136,7 +136,6 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 
 		calculateTimeLeft()
 
-		// Use a more efficient approach for updates
 		const interval = setInterval(calculateTimeLeft, 1000)
 		return () => clearInterval(interval)
 
@@ -153,6 +152,21 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 				data-ready={latestProposal?.state === 5 && canExecuteProposal(latestProposal.eta)}
 			>
 				<span className="flex items-center">
+					{/* Warning icon if there are errors */}
+					{(errors?.proposals || errors?.timing) && (
+						<svg
+							className="w-4 h-4 mr-1 text-yellow-500"
+							fill="currentColor"
+							viewBox="0 0 20 20"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<path
+								fillRule="evenodd"
+								d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+								clipRule="evenodd"
+							/>
+						</svg>
+					)}
 					<svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
 					</svg>
@@ -161,7 +175,14 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 			</button>
 			{showTooltip && (
 				<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-					{tooltipText}
+					<p>{tooltipText}</p>
+					{/* Append error messages if they exist */}
+					{errors?.proposals && (
+						<p className="mt-2 text-yellow-300">Proposal error: {errors.proposals}</p>
+					)}
+					{errors?.timing && (
+						<p className="mt-2 text-yellow-300">Timing error: {errors.timing}</p>
+					)}
 				</div>
 			)}
 		</div>
