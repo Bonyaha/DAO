@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useWriteContract } from 'wagmi'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import ProposalTimingButton from './ProposalTimingButton'
@@ -39,12 +39,14 @@ const ProposalListContent = () => {
 	const { writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
 	const { writeContract: queueProposal, isPending: queueInProgress } = useWriteContract()
 
-	const startIdx = page * PROPOSALS_PER_PAGE
-	const endIdx = startIdx + PROPOSALS_PER_PAGE
-	const paginatedProposals = proposals.slice(startIdx, endIdx)
+	const paginatedProposals = useMemo(() => {
+		const startIdx = page * PROPOSALS_PER_PAGE
+		const endIdx = startIdx + PROPOSALS_PER_PAGE
+		return proposals.slice(startIdx, endIdx)
+	}, [proposals, page])
 
 
-	const handleVote = async (proposalId, support) => {
+	const handleVote = useCallback(async (proposalId, support) => {
 		try {
 			await castVote({
 				address: governorAddress,
@@ -56,9 +58,9 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error voting:', error)
 		}
-	}
+	},[	governorAddress, castVote])
 
-	const handleQueue = async (proposal) => {
+	const handleQueue = useCallback(async (proposal) => {
 		try {
 			await queueProposal({
 				address: governorAddress,
@@ -70,9 +72,9 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error queuing proposal:', error)
 		}
-	}
+	}	, [governorAddress, queueProposal])
 
-	const handleExecute = async (proposal) => {
+	const handleExecute = useCallback(async (proposal) => {
 		// Double-check if proposal can be executed with fresh timestamp
 		if (!canExecuteProposal(proposal.eta, currentTime)) {
 			console.error('Proposal not yet ready for execution')
@@ -104,19 +106,19 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error executing proposal:', error)
 		}
-	}
+	}	, [governorAddress, executeProposal, canExecuteProposal, currentTime])
 
-	const handleNextPage = () => {
+	const handleNextPage = useCallback(() => {
 		if ((page + 1) * PROPOSALS_PER_PAGE < totalProposals) {
 			setPage(page + 1)
 		}
-	}
+	}	, [page, totalProposals])
 
-	const handlePrevPage = () => {
+	const handlePrevPage = useCallback(() => {
 		if (page > 0) {
 			setPage(page - 1)
 		}
-	}
+	}	, [page])
 
 	if (isLoading && !proposals.length) {
 		return (
@@ -199,10 +201,6 @@ const ProposalListContent = () => {
 			)
 		}
 	}
-
-	//console.log("proposals", paginatedProposals);
-	//console.log(`timelockPeriod: ${timelockPeriod}`);
-	//console.log(`totalProposals: ${totalProposals}`);
 
 	return (
 		<div className="mt-8">
