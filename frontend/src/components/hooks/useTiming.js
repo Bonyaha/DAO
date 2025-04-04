@@ -17,10 +17,16 @@ const useDebounce = (value, delay) => {
 	return debouncedValue
 }
 
+const BLOCK_TIME_FALLBACKS = {
+	31337: 1, // Hardhat
+	11155111: 12, // Sepolia
+	1: 12, // Ethereum Mainnet
+}
+
 export function useTiming({ publicClient, chain }) {
 	const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000))
 	const [currentBlock, setCurrentBlock] = useState(0)
-	const [blockTime, setBlockTime] = useState(1)
+	const [blockTime, setBlockTime] = useState(BLOCK_TIME_FALLBACKS[chain?.id] || 12)
 	const [timingError, setTimingError] = useState(null)
 	const previousBlockRef = useRef(0)
 	const { data: blockNumberData } = useBlockNumber({ watch: true })
@@ -35,11 +41,11 @@ export function useTiming({ publicClient, chain }) {
 				const latestBlock = await publicClient.getBlock()
 				const previousBlock = await publicClient.getBlock(latestBlock.number - 1n)
 				const timeDiff = Number(latestBlock.timestamp - previousBlock.timestamp)
-				setBlockTime(timeDiff > 0 ? timeDiff : chain?.id === 31337 ? 1 : 12)
+				setBlockTime(timeDiff > 0 ? timeDiff : BLOCK_TIME_FALLBACKS[chain?.id] || 12)
 			} catch (err) {
 				console.error('Error detecting block time:', err)
 				setTimingError('Failed to detect block time. Using default value.')
-				setBlockTime(chain?.id === 31337 ? 1 : 12) // Fallback to default
+				setBlockTime(BLOCK_TIME_FALLBACKS[chain?.id] || 12) // Fallback to default
 			}
 		}
 		detectBlockTime()
