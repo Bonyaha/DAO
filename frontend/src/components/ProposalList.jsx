@@ -1,4 +1,4 @@
-import { useState} from 'react'
+import { useState } from 'react'
 import { useWriteContract } from 'wagmi'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import ProposalTimingButton from './ProposalTimingButton'
@@ -26,6 +26,7 @@ const ProposalListContent = () => {
 		canExecuteProposal,
 		currentTime,
 		isLoading,
+		error
 	} = useProposalContext()
 
 
@@ -65,7 +66,7 @@ const ProposalListContent = () => {
 				functionName: 'queue',
 				args: [proposal.targets, proposal.values, proposal.calldatas, proposal.descriptionHash],
 			})
-			
+
 		} catch (error) {
 			console.error('Error queuing proposal:', error)
 		}
@@ -99,7 +100,7 @@ const ProposalListContent = () => {
 				abi: MyGovernor.abi,
 				functionName: 'execute',
 				args: [proposal.targets, proposal.values, proposal.calldatas, proposal.descriptionHash],
-			})			
+			})
 		} catch (error) {
 			console.error('Error executing proposal:', error)
 		}
@@ -120,7 +121,7 @@ const ProposalListContent = () => {
 	if (isLoading && !proposals.length) {
 		return (
 			<div className="mt-8">
-				<h2 className="text-2xl font-bold mb-4">Proposals</h2>
+				<h2 className="text-2xl font-bold mb-4">Proposals</h2>	
 				<div className="flex justify-center items-center h-32">
 					<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
 				</div>
@@ -145,12 +146,12 @@ const ProposalListContent = () => {
 			minute: '2-digit',
 			hour12: false,
 			timeZone: 'Europe/Kyiv',
-		}).format(date);
-		
-		return formatted
-	};
+		}).format(date)
 
-	const renderProposalStatus = (proposal) => {		
+		return formatted
+	}
+
+	const renderProposalStatus = (proposal) => {
 		const statusText = ProposalStatusMap[proposal.state]
 		const statusClass = ['Succeeded', 'Executed'].includes(statusText)
 			? 'bg-green-100 text-green-800'
@@ -172,7 +173,7 @@ const ProposalListContent = () => {
 				)}
 			</div>
 		)
-	};
+	}
 	// Execute button rendering in the JSX
 	const renderExecuteButton = (proposal) => {
 		if (proposal.state !== 5) return null
@@ -197,21 +198,26 @@ const ProposalListContent = () => {
 				</button>
 			)
 		}
-	};
+	}
 
 	//console.log("proposals", paginatedProposals);
-//console.log(`timelockPeriod: ${timelockPeriod}`);
-//console.log(`totalProposals: ${totalProposals}`);
+	//console.log(`timelockPeriod: ${timelockPeriod}`);
+	//console.log(`totalProposals: ${totalProposals}`);
 
 	return (
 		<div className="mt-8">
 			<h2 className="text-2xl font-bold mb-4">Proposals</h2>
+			{error && (
+				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+					<p>{error}</p>
+				</div>
+			)}
 			{votingPower === 0 && (
 				<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
 					<p>You don&apos;t have any voting power. Get tokens to participate in voting.</p>
 				</div>
 			)}
-			
+
 			{totalProposals === 0 || proposals.length === 0 ? (
 				<div className="bg-white p-6 rounded-lg shadow-md">
 					<p className="text-gray-500">No proposals found. Create one to get started!</p>
@@ -219,14 +225,14 @@ const ProposalListContent = () => {
 			) : (
 				<>
 					<div className="space-y-4">
-							{paginatedProposals.map((proposal) => (
+						{paginatedProposals.map((proposal) => (
 							<div key={proposal.id.toString()} className="bg-white p-6 rounded-lg shadow-md">
 								<h3 className="text-xl font-bold">{proposal.title}</h3>
 								<p className="my-2 text-gray-700">{proposal.description}</p>
 								<div className="flex justify-between items-center mt-4">
 									{/* Updated status section with timing button */}
 									<div className="flex items-center">
-											{renderProposalStatus(proposal)}
+										{renderProposalStatus(proposal)}
 										<div className="ml-2">
 											<ProposalTimingButton
 												proposal={{
@@ -238,87 +244,87 @@ const ProposalListContent = () => {
 										</div>
 									</div>
 									<div className="space-x-2">
-											{proposal.state === 1 && (
-												<>
-													<div
-														className="relative inline-block"
-														onMouseEnter={() => setShowForTooltip(true)}
-														onMouseLeave={() => setShowForTooltip(false)}
+										{proposal.state === 1 && (
+											<>
+												<div
+													className="relative inline-block"
+													onMouseEnter={() => setShowForTooltip(true)}
+													onMouseLeave={() => setShowForTooltip(false)}
+												>
+													<button
+														onClick={() => handleVote(proposal.id, 1)}
+														className={`${votingPower > 0 && !proposal.hasVoted
+															? 'bg-green-500 hover:bg-green-600'
+															: 'bg-green-300 cursor-not-allowed'
+															} text-white px-3 py-1 rounded`}
+														disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
 													>
-														<button
-															onClick={() => handleVote(proposal.id, 1)}
-															className={`${votingPower > 0 && !proposal.hasVoted
-																? 'bg-green-500 hover:bg-green-600'
-																: 'bg-green-300 cursor-not-allowed'
-																} text-white px-3 py-1 rounded`}
-															disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
-														>
-															For
-														</button>
-														{showForTooltip && (proposal.hasVoted || votingPower <= 0) && (
-															<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-																{proposal.hasVoted
-																	? 'You have already voted on this proposal'
-																	: votingPower <= 0
-																		? 'You need voting power to vote'
-																		: ''}
-															</div>
-														)}
-													</div>
+														For
+													</button>
+													{showForTooltip && (proposal.hasVoted || votingPower <= 0) && (
+														<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
+															{proposal.hasVoted
+																? 'You have already voted on this proposal'
+																: votingPower <= 0
+																	? 'You need voting power to vote'
+																	: ''}
+														</div>
+													)}
+												</div>
 
-													<div
-														className="relative inline-block"
-														onMouseEnter={() => setShowAgainstTooltip(true)}
-														onMouseLeave={() => setShowAgainstTooltip(false)}
+												<div
+													className="relative inline-block"
+													onMouseEnter={() => setShowAgainstTooltip(true)}
+													onMouseLeave={() => setShowAgainstTooltip(false)}
+												>
+													<button
+														onClick={() => handleVote(proposal.id, 0)}
+														className={`${votingPower > 0 && !proposal.hasVoted
+															? 'bg-red-500 hover:bg-red-600'
+															: 'bg-red-300 cursor-not-allowed'
+															} text-white px-3 py-1 rounded`}
+														disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
 													>
-														<button
-															onClick={() => handleVote(proposal.id, 0)}
-															className={`${votingPower > 0 && !proposal.hasVoted
-																? 'bg-red-500 hover:bg-red-600'
-																: 'bg-red-300 cursor-not-allowed'
-																} text-white px-3 py-1 rounded`}
-															disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
-														>
-															Against
-														</button>
-														{showAgainstTooltip && (proposal.hasVoted || votingPower <= 0) && (
-															<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-																{proposal.hasVoted
-																	? 'You have already voted on this proposal'
-																	: votingPower <= 0
-																		? 'You need voting power to vote'
-																		: ''}
-															</div>
-														)}
-													</div>
+														Against
+													</button>
+													{showAgainstTooltip && (proposal.hasVoted || votingPower <= 0) && (
+														<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
+															{proposal.hasVoted
+																? 'You have already voted on this proposal'
+																: votingPower <= 0
+																	? 'You need voting power to vote'
+																	: ''}
+														</div>
+													)}
+												</div>
 
-													<div
-														className="relative inline-block"
-														onMouseEnter={() => setShowAbstainTooltip(true)}
-														onMouseLeave={() => setShowAbstainTooltip(false)}
+												<div
+													className="relative inline-block"
+													onMouseEnter={() => setShowAbstainTooltip(true)}
+													onMouseLeave={() => setShowAbstainTooltip(false)}
+												>
+													<button
+														onClick={() => handleVote(proposal.id, 2)}
+														className={`${votingPower > 0 && !proposal.hasVoted
+															? 'bg-gray-500 hover:bg-gray-600'
+															: 'bg-gray-300 cursor-not-allowed'
+															} text-white px-3 py-1 rounded`}
+														disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
 													>
-														<button
-															onClick={() => handleVote(proposal.id, 2)}
-															className={`${votingPower > 0 && !proposal.hasVoted
-																? 'bg-gray-500 hover:bg-gray-600'
-																: 'bg-gray-300 cursor-not-allowed'
-																} text-white px-3 py-1 rounded`}
-															disabled={votingInProgress || votingPower <= 0 || proposal.hasVoted}
-														>
-															Abstain
-														</button>
-														{showAbstainTooltip && (proposal.hasVoted || votingPower <= 0) && (
-															<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
-																{proposal.hasVoted
-																	? 'You have already voted on this proposal'
-																	: votingPower <= 0
-																		? 'You need voting power to vote'
-																		: ''}
-															</div>
-														)}
-													</div>
-												</>
-											)}
+														Abstain
+													</button>
+													{showAbstainTooltip && (proposal.hasVoted || votingPower <= 0) && (
+														<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
+															{proposal.hasVoted
+																? 'You have already voted on this proposal'
+																: votingPower <= 0
+																	? 'You need voting power to vote'
+																	: ''}
+														</div>
+													)}
+												</div>
+											</>
+										)}
 										{proposal.state === 4 && (
 											<button
 												onClick={() => handleQueue(proposal)}
