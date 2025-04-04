@@ -21,6 +21,7 @@ export function useTiming({ publicClient, chain }) {
 	const [currentTime, setCurrentTime] = useState(Math.floor(Date.now() / 1000))
 	const [currentBlock, setCurrentBlock] = useState(0)
 	const [blockTime, setBlockTime] = useState(1)
+	const [timingError, setTimingError] = useState(null)
 	const previousBlockRef = useRef(0)
 	const { data: blockNumberData } = useBlockNumber({ watch: true })
 	const debouncedBlockNumber = useDebounce(blockNumberData, 1000)
@@ -29,14 +30,16 @@ export function useTiming({ publicClient, chain }) {
 	useEffect(() => {
 		const detectBlockTime = async () => {
 			if (!publicClient) return
+			setTimingError(null)
 			try {
 				const latestBlock = await publicClient.getBlock()
 				const previousBlock = await publicClient.getBlock(latestBlock.number - 1n)
 				const timeDiff = Number(latestBlock.timestamp - previousBlock.timestamp)
 				setBlockTime(timeDiff > 0 ? timeDiff : chain?.id === 31337 ? 1 : 12)
-			} catch (error) {
-				console.error('Error detecting block time:', error)
-				setBlockTime(chain?.id === 31337 ? 1 : 12)
+			} catch (err) {
+				console.error('Error detecting block time:', err)
+				setTimingError('Failed to detect block time. Using default value.')
+				setBlockTime(chain?.id === 31337 ? 1 : 12) // Fallback to default
 			}
 		}
 		detectBlockTime()
@@ -57,11 +60,13 @@ export function useTiming({ publicClient, chain }) {
 	useEffect(() => {
 		if (!publicClient) return
 		const updateTime = async () => {
+			setTimingError(null)
 			try {
 				const block = await publicClient.getBlock()
 				setCurrentTime(Number(block.timestamp))
 			} catch (error) {
 				console.error('Error fetching block timestamp:', error)
+				setTimingError('Failed to fetch current block timestamp.')
 			}
 		}
 		updateTime()
@@ -70,5 +75,5 @@ export function useTiming({ publicClient, chain }) {
 	}, [publicClient])
 
 
-	return { currentTime, currentBlock, blockTime }
+	return { currentTime, currentBlock, blockTime, timingError }
 }
