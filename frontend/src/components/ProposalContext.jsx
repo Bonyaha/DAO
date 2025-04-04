@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { usePublicClient,useAccount } from 'wagmi'
+import { usePublicClient, useAccount } from 'wagmi'
 import addresses from '../addresses.json'
 import { ProposalContext } from './hooks/useProposalContext'
 import { useTiming } from './hooks/useTiming'
@@ -10,7 +10,7 @@ import { useProposals } from './hooks/useProposals'
 
 export function ProposalProvider({ children }) {
 	const [governorAddress, setGovernorAddress] = useState('')
-	const [tokenAddress, setTokenAddress] = useState('')	
+	const [tokenAddress, setTokenAddress] = useState('')
 	const publicClient = usePublicClient()
 	const { address, chain } = useAccount()
 
@@ -21,7 +21,7 @@ export function ProposalProvider({ children }) {
 			setGovernorAddress(addresses[network].governor.address)
 			setTokenAddress(addresses[network].governanceToken.address)
 		}
-	}, [chain])			
+	}, [chain])
 
 
 	// Using timing hook
@@ -31,14 +31,14 @@ export function ProposalProvider({ children }) {
 	const { votingPower } = useVotingPower({ tokenAddress, address })
 
 	// Use proposals hook
-	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted } = useProposals({
+	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted, error } = useProposals({
 		publicClient,
 		chain,
 		governorAddress,
 		address,
 		currentBlock,
 	})
-	
+
 	const canExecuteProposal = useCallback((eta) => {
 		return eta > 0 && currentTime >= eta
 	}, [currentTime])
@@ -54,7 +54,8 @@ export function ProposalProvider({ children }) {
 		currentBlock,
 		canExecuteProposal,
 		blockTime,
-		fetchProposals
+		fetchProposals,
+		error
 	}), [
 		proposals,
 		totalProposals,
@@ -66,7 +67,8 @@ export function ProposalProvider({ children }) {
 		currentBlock,
 		canExecuteProposal,
 		blockTime,
-		fetchProposals
+		fetchProposals,
+		error
 	])
 
 	return (

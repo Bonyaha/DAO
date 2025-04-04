@@ -7,6 +7,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 	const [proposals, setProposals] = useState([])
 	const [totalProposals, setTotalProposals] = useState(0)
 	const [isLoading, setIsLoading] = useState(true)
+	const [error, setError] = useState(null)
 	const proposalCache = useRef(new Map()) // Map<proposalId, proposalData>
 	const proposalsRef = useRef([])
 
@@ -41,37 +42,44 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 
 		let state, snapshot, deadline, votes, eta, hasVoted
 
-		if (chain.id === 31337) {
-			// Individual calls for Hardhat
-			[state, snapshot, deadline, votes, eta] = await Promise.all(
-				calls.map((call) => publicClient.readContract(call))
-			)
-			hasVoted = address ? await hasUserVoted(proposalId) : false
-		} else {
-			// Multicall for supported networks
-			const results = await publicClient.multicall({ contracts: calls });
-			[state, snapshot, deadline, votes, eta] = results.map((r) => r.result)
-			hasVoted = address ? await hasUserVoted(proposalId) : false
-		}
+		try {
+			if (chain.id === 31337) {
+				// Individual calls for Hardhat
+				[state, snapshot, deadline, votes, eta] = await Promise.all(
+					calls.map((call) => publicClient.readContract(call))
+				)
+				hasVoted = address ? await hasUserVoted(proposalId) : false
+			} else {
+				// Multicall for supported networks
+				const results = await publicClient.multicall({ contracts: calls });
+				[state, snapshot, deadline, votes, eta] = results.map((r) => r.result)
+				hasVoted = address ? await hasUserVoted(proposalId) : false
+			}
 
-		return {
-			...basicData,
-			state: Number(state),
-			proposalSnapshot: Number(snapshot),
-			proposalDeadline: Number(deadline),
-			forVotes: ethers.formatEther(votes[1]),
-			againstVotes: ethers.formatEther(votes[0]),
-			abstainVotes: ethers.formatEther(votes[2]),
-			eta: Number(eta),
-			hasVoted: hasVoted || false,
+			return {
+				...basicData,
+				state: Number(state),
+				proposalSnapshot: Number(snapshot),
+				proposalDeadline: Number(deadline),
+				forVotes: ethers.formatEther(votes[1]),
+				againstVotes: ethers.formatEther(votes[0]),
+				abstainVotes: ethers.formatEther(votes[2]),
+				eta: Number(eta),
+				hasVoted: hasVoted || false,
+			}
+		} catch (err) {
+			console.error('Error fetching proposal data:', err)
+			setError(`Failed to fetch data for proposal ${proposalId}.`)
+			return null
 		}
-	}, [governorAddress, publicClient, chain, address, hasUserVoted]);
+	}, [governorAddress, publicClient, chain, address, hasUserVoted])
 
 	// Fetch all proposals
 	const fetchAllProposals = useCallback(async () => {
 		if (!governorAddress || !publicClient || !chain) return
 
 		setIsLoading(true)
+		setError(null)
 		try {
 			const events = await publicClient.getContractEvents({
 				address: governorAddress,
@@ -125,6 +133,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			setProposals(finalProposals)
 		} catch (error) {
 			console.error('Error fetching all proposals:', error)
+			setError('Failed to fetch proposals. Please try again later.')
 		} finally {
 			setIsLoading(false)
 		}
@@ -151,14 +160,19 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			setTotalProposals((prev) => prev + 1)
 		}
 
-		const updatedData = await fetchProposalData(proposalId, basicData)
-		if (eventType === 'ProposalExecuted') {
-			const block = await publicClient.getBlock({ blockNumber: eventData.blockNumber })
-			updatedData.executedAt = Number(block.timestamp)
-		}
+		try {
+			const updatedData = await fetchProposalData(proposalId, basicData)
+			if (eventType === 'ProposalExecuted') {
+				const block = await publicClient.getBlock({ blockNumber: eventData.blockNumber })
+				updatedData.executedAt = Number(block.timestamp)
+			}
 
-		proposalCache.current.set(proposalId, updatedData)
-		setProposals(Array.from(proposalCache.current.values()))
+			proposalCache.current.set(proposalId, updatedData)
+			setProposals(Array.from(proposalCache.current.values()))
+		} catch (err) {
+			console.error('Error updating proposal:', err)
+			setError('Failed to update proposal. Please try again.')
+		}
 	}, [fetchProposalData, publicClient])
 
 	// Event handlers
@@ -235,25 +249,29 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		if (!currentBlock || !proposalsRef.current.length) return
 
 		const checkProposalStates = async () => {
-			const updatedProposals = await Promise.all(
-				proposalsRef.current.map(async (proposal) => {
-					const newState = await publicClient.readContract({
-						address: governorAddress,
-						abi: MyGovernor.abi,
-						functionName: 'state',
-						args: [proposal.id],
+			try {
+				const updatedProposals = await Promise.all(
+					proposalsRef.current.map(async (proposal) => {
+						const newState = await publicClient.readContract({
+							address: governorAddress,
+							abi: MyGovernor.abi,
+							functionName: 'state',
+							args: [proposal.id],
+						})
+						if (Number(newState) !== proposal.state) {
+							const updated = await fetchProposalData(proposal.id, proposal)
+							proposalCache.current.set(proposal.id, updated)
+							return updated
+						}
+						return proposal
 					})
-					if (Number(newState) !== proposal.state) {
-						const updated = await fetchProposalData(proposal.id, proposal)
-						proposalCache.current.set(proposal.id, updated)
-						return updated
-					}
-					return proposal
-				})
-			)
-			setProposals(updatedProposals)
+				)
+				setProposals(updatedProposals)
+			} catch (err) {
+				console.error('Error checking proposal states:', err)
+				setError('Failed to refresh proposal states.')
+			}
 		}
-
 		const timeoutId = setTimeout(checkProposalStates, 500)
 		return () => clearTimeout(timeoutId)
 	}, [currentBlock, governorAddress, publicClient, fetchProposalData])
@@ -270,5 +288,6 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		isLoading,
 		fetchProposals: fetchAllProposals,
 		hasUserVoted,
+		error,
 	}
 }
