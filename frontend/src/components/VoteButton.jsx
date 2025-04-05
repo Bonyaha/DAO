@@ -1,6 +1,7 @@
+import React from 'react'
 import PropTypes from 'prop-types'
 
-const VoteButton = ({
+const VoteButton = React.memo(({
 	onVote,
 	label,
 	activeColor,
@@ -28,7 +29,9 @@ const VoteButton = ({
 			</div>
 		)}
 	</div>
-)
+))
+
+VoteButton.displayName = 'VoteButton'
 
 VoteButton.propTypes = {
 	onVote: PropTypes.func.isRequired,
