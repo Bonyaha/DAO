@@ -9,7 +9,9 @@ const VoteButton = React.memo(({
 	isDisabled,
 	showTooltip,
 	setShowTooltip,
-	tooltipText
+	tooltipText,
+	hasVoted,
+	hasVotingPower
 }) => (
 	<div
 		className="relative inline-block"
@@ -23,7 +25,7 @@ const VoteButton = React.memo(({
 		>
 			{label}
 		</button>
-		{showTooltip && isDisabled && (
+		{showTooltip && (hasVoted || !hasVotingPower) && (
 			<div className="absolute z-10 w-64 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg -left-24">
 				{tooltipText}
 			</div>
@@ -42,6 +44,8 @@ VoteButton.propTypes = {
 	showTooltip: PropTypes.bool.isRequired,
 	setShowTooltip: PropTypes.func.isRequired,
 	tooltipText: PropTypes.string.isRequired,
+	hasVoted: PropTypes.bool.isRequired,
+	hasVotingPower: PropTypes.bool.isRequired
 }
 
 export default VoteButton

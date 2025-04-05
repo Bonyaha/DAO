@@ -233,90 +233,92 @@ const ProposalListContent = () => {
 					<div className="space-y-4">
 						{paginatedProposals.map((proposal) => {
 							const isVoteDisabled = votingInProgress || votingPower <= 0 || proposal.hasVoted
-							console.log(`votingInProgress: ${votingInProgress}`);
-
-
-
 							const tooltipText = proposal.hasVoted
 								? 'You have already voted on this proposal'
 								: 'You need voting power to vote'
 
-return(
-							<div key={proposal.id.toString()} className="bg-white p-6 rounded-lg shadow-md">
-								<h3 className="text-xl font-bold">{proposal.title}</h3>
-								<p className="my-2 text-gray-700">{proposal.description}</p>
-								<div className="flex justify-between items-center mt-4">
-									{/* Updated status section with timing button */}
-									<div className="flex items-center">
-										{renderProposalStatus(proposal)}
-										<div className="ml-2">
-											<ProposalTimingButton
-												proposal={{
-													...proposal,
-													id: proposal.id.toString()  // Convert BigInt to string
-												}}
-												governorAddress={governorAddress}
-											/>
+							return (
+								<div key={proposal.id.toString()} className="bg-white p-6 rounded-lg shadow-md">
+									<h3 className="text-xl font-bold">{proposal.title}</h3>
+									<p className="my-2 text-gray-700">{proposal.description}</p>
+									<div className="flex justify-between items-center mt-4">
+										{/* Updated status section with timing button */}
+										<div className="flex items-center">
+											{renderProposalStatus(proposal)}
+											<div className="ml-2">
+												<ProposalTimingButton
+													proposal={{
+														...proposal,
+														id: proposal.id.toString()  // Convert BigInt to string
+													}}
+													governorAddress={governorAddress}
+												/>
+											</div>
+										</div>
+										<div className="space-x-2">
+											{proposal.state === 1 && (
+												<>
+													<VoteButton
+														onVote={() => handleVote(proposal.id, 1)}
+														label="For"
+														activeColor="bg-green-500"
+														disabledColor="bg-green-300 cursor-not-allowed"
+														isDisabled={isVoteDisabled}
+														showTooltip={showForTooltip}
+														setShowTooltip={setShowForTooltip}
+														tooltipText={tooltipText}
+														hasVoted={proposal.hasVoted}
+														hasVotingPower={votingPower > 0}
+													/>
+
+													<VoteButton
+														onVote={() => handleVote(proposal.id, 0)}
+														label="Against"
+														activeColor="bg-red-500"
+														disabledColor="bg-red-300 cursor-not-allowed"
+														isDisabled={isVoteDisabled}
+														showTooltip={showAgainstTooltip}
+														setShowTooltip={setShowAgainstTooltip}
+														tooltipText={tooltipText}
+														hasVoted={proposal.hasVoted}
+														hasVotingPower={votingPower > 0}
+													/>
+
+													<VoteButton
+														onVote={() => handleVote(proposal.id, 2)}
+														label="Abstain"
+														activeColor="bg-gray-500"
+														disabledColor="bg-gray-300 cursor-not-allowed"
+														isDisabled={isVoteDisabled}
+														showTooltip={showAbstainTooltip}
+														setShowTooltip={setShowAbstainTooltip}
+														tooltipText={tooltipText}
+														hasVoted={proposal.hasVoted}
+														hasVotingPower={votingPower > 0}
+													/>
+												</>
+											)}
+											{proposal.state === 4 && (
+												<button
+													onClick={() => handleQueue(proposal)}
+													className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+													disabled={queueInProgress}
+												>
+													Queue
+												</button>
+											)}
+											{proposal.state === 5 && renderExecuteButton(proposal)}
 										</div>
 									</div>
-									<div className="space-x-2">
-										{proposal.state === 1 && (
-											<>
-						<VoteButton
-							onVote={() => handleVote(proposal.id, 1)}
-							label="For"
-							activeColor="bg-green-500"
-							disabledColor="bg-green-300 cursor-not-allowed"
-							isDisabled={isVoteDisabled}
-							showTooltip={showForTooltip}
-							setShowTooltip={setShowForTooltip}
-							tooltipText={tooltipText}
-						/>
-
-						<VoteButton
-							onVote={() => handleVote(proposal.id, 0)}
-							label="Against"
-							activeColor="bg-red-500"
-							disabledColor="bg-red-300 cursor-not-allowed"
-							isDisabled={isVoteDisabled}
-							showTooltip={showAgainstTooltip}
-							setShowTooltip={setShowAgainstTooltip}
-							tooltipText={tooltipText}
-						/>
-
-						<VoteButton
-							onVote={() => handleVote(proposal.id, 2)}
-							label="Abstain"
-							activeColor="bg-gray-500"
-							disabledColor="bg-gray-300 cursor-not-allowed"
-							isDisabled={isVoteDisabled}
-							showTooltip={showAbstainTooltip}
-							setShowTooltip={setShowAbstainTooltip}
-							tooltipText={tooltipText}
-						/>
-											</>
-										)}
-										{proposal.state === 4 && (
-											<button
-												onClick={() => handleQueue(proposal)}
-												className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-												disabled={queueInProgress}
-											>
-												Queue
-											</button>
-										)}
-										{proposal.state === 5 && renderExecuteButton(proposal)}
+									<div className="mt-4 text-sm text-gray-500">
+										<p>Votes For: {proposal.forVotes}</p>
+										<p>Votes Against: {proposal.againstVotes}</p>
+										<p>Abstained: {proposal.abstainVotes}</p>
 									</div>
 								</div>
-								<div className="mt-4 text-sm text-gray-500">
-									<p>Votes For: {proposal.forVotes}</p>
-									<p>Votes Against: {proposal.againstVotes}</p>
-									<p>Abstained: {proposal.abstainVotes}</p>
-								</div>
-							</div>
 							)
 						})}
-						</div>
+					</div>
 					{totalProposals > PROPOSALS_PER_PAGE && (
 						<div className="flex justify-between items-center mt-6">
 							<button
