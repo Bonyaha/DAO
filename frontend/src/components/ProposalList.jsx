@@ -233,6 +233,10 @@ const ProposalListContent = () => {
 					<div className="space-y-4">
 						{paginatedProposals.map((proposal) => {
 							const isVoteDisabled = votingInProgress || votingPower <= 0 || proposal.hasVoted
+console.log(`isVoteDisabled: ${isVoteDisabled}`);
+console.log(`showForTooltip: ${showForTooltip}`);
+
+
 							const tooltipText = proposal.hasVoted
 								? 'You have already voted on this proposal'
 								: 'You need voting power to vote'

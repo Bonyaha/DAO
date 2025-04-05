@@ -18,7 +18,7 @@ const VoteButton = React.memo(({
 	>
 		<button
 			onClick={onVote}
-			className={`${!isDisabled ? `${activeColor} hover:bg-opacity-90` : disabledColor} text-white px-3 py-1 rounded`}
+			className={`${!isDisabled ? `${activeColor} hover:bg-green-600` : disabledColor} text-white px-3 py-1 rounded`}
 			disabled={isDisabled}
 		>
 			{label}
