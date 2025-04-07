@@ -41,11 +41,15 @@ const ProposalCard = React.memo(({
 
 	const renderProposalStatus = () => {
 		const statusText = ProposalStatusMap[proposal.state]
-		const statusClass = ['Succeeded', 'Executed'].includes(statusText)
-			? 'bg-green-100 text-green-800'
-			: ['Defeated', 'Canceled', 'Expired'].includes(statusText)
-				? 'bg-red-100 text-red-800'
-				: 'bg-blue-100 text-blue-800'
+		const statusStyles = {
+			Succeeded: 'bg-green-100 text-green-800',
+			Executed: 'bg-green-100 text-green-800',
+			Defeated: 'bg-red-100 text-red-800',
+			Canceled: 'bg-red-100 text-red-800',
+			Expired: 'bg-red-100 text-red-800',
+			default: 'bg-blue-100 text-blue-800',
+		}
+		const statusClass = statusStyles[statusText] || statusStyles.default
 
 		return (
 			<div className="flex items-center">
@@ -66,7 +70,7 @@ const ProposalCard = React.memo(({
 	const renderExecuteButton = () => {
 		if (proposal.state !== 5) return null
 
-		if (canExecuteProposal(proposal.eta, currentTime)) {
+		if (canExecuteProposal(proposal.eta)) {
 			return (
 				<button
 					onClick={() => handleExecute(proposal)}
