@@ -19,7 +19,6 @@ const ProposalCard = React.memo(({
 	governorAddress,
 	votingPower,
 	canExecuteProposal,
-	currentTime,
 	handleVote,
 	handleQueue,
 	handleExecute,

@@ -14,8 +14,7 @@ const ProposalListContent = () => {
 		totalProposals,
 		governorAddress,
 		votingPower,
-		canExecuteProposal,
-		currentTime,
+		canExecuteProposal,		
 		isLoading,
 		errors
 	} = useProposalContext()
@@ -67,7 +66,7 @@ const ProposalListContent = () => {
 
 	const handleExecute = useCallback(async (proposal) => {
 		// Double-check if proposal can be executed with fresh timestamp
-		if (!canExecuteProposal(proposal.eta, currentTime)) {
+		if (!canExecuteProposal(proposal.eta)) {
 			console.error('Proposal not yet ready for execution')
 			return
 		}
@@ -97,7 +96,7 @@ const ProposalListContent = () => {
 		} catch (error) {
 			console.error('Error executing proposal:', error)
 		}
-	}, [governorAddress, executeProposal, canExecuteProposal, currentTime])
+	}, [governorAddress, executeProposal, canExecuteProposal])
 
 	const handleNextPage = useCallback(() => {
 		if ((page + 1) * PROPOSALS_PER_PAGE < totalProposals) {
@@ -176,8 +175,7 @@ const ProposalListContent = () => {
 								proposal={proposal}
 								governorAddress={governorAddress}
 								votingPower={votingPower}
-								canExecuteProposal={canExecuteProposal}
-								currentTime={currentTime}
+								canExecuteProposal={canExecuteProposal}								
 								handleVote={handleVote}
 								handleQueue={handleQueue}
 								handleExecute={handleExecute}
