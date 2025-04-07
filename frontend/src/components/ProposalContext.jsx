@@ -6,13 +6,14 @@ import { ProposalContext } from './hooks/useProposalContext'
 import { useTiming } from './hooks/useTiming'
 import { useVotingPower } from './hooks/useVotingPower'
 import { useProposals } from './hooks/useProposals'
+import { useEligibleVoters } from './hooks/useEligibleVoters'
 
 
 export function ProposalProvider({ children }) {
 	const [governorAddress, setGovernorAddress] = useState('')
 	const [tokenAddress, setTokenAddress] = useState('')
 	const publicClient = usePublicClient()
-	const { address, chain } = useAccount()
+	const { address, chain, isConnected } = useAccount()
 
 	// Set contract addresses
 	useEffect(() => {
@@ -39,6 +40,9 @@ export function ProposalProvider({ children }) {
 		currentBlock,
 	})
 
+	// Use eligible voters hook
+	const { eligibleVoters } = useEligibleVoters({ tokenAddress });
+
 	const canExecuteProposal = useCallback((eta) => {
 		return eta > 0 && currentTime >= eta
 	}, [currentTime])
@@ -48,6 +52,7 @@ export function ProposalProvider({ children }) {
 		totalProposals,
 		governorAddress,
 		votingPower,
+		eligibleVoters,
 		isLoading,
 		hasUserVoted,
 		currentTime,
@@ -55,6 +60,7 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
+		isConnected,
 		errors: {
 			proposals: proposalError,
 			timing: timingError,
@@ -64,6 +70,7 @@ export function ProposalProvider({ children }) {
 		totalProposals,
 		governorAddress,
 		votingPower,
+		eligibleVoters,
 		isLoading,
 		hasUserVoted,
 		currentTime,
@@ -71,6 +78,7 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
+		isConnected,
 		proposalError, timingError
 	])
 
