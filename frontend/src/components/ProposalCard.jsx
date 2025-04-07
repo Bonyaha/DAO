@@ -1,4 +1,4 @@
-//import React from 'react'
+import React from 'react'
 import PropTypes from 'prop-types'
 import VoteButton from './VoteButton'
 import ProposalTimingButton from './ProposalTimingButton'
@@ -14,7 +14,7 @@ const ProposalStatusMap = {
 	7: 'Executed',
 }
 
-const ProposalCard = ({
+const ProposalCard = React.memo(({
 	proposal,
 	governorAddress,
 	votingPower,
@@ -162,7 +162,9 @@ const ProposalCard = ({
 			</div>
 		</div>
 	)
-}
+})
+
+ProposalCard.displayName = 'ProposalCard'
 
 ProposalCard.propTypes = {
 	proposal: PropTypes.object.isRequired,
