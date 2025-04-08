@@ -5,55 +5,29 @@ import { BaseError, ContractFunctionRevertedError } from 'viem'
 import Box from '../artifacts/contracts/Box.sol/Box.json'
 import GovernanceToken from '../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
-import addresses from '../addresses.json'
 import ProposalForm from './ProposalForm'
 import ProposalList from './ProposalList'
 import { useProposalContext } from './hooks/useProposalContext'
+import { useErrorContext } from './hooks/useErrorContext'
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
-	const [showValueInButton, setShowValueInButton] = useState(false)
-	const [boxAddress, setBoxAddress] = useState('')
-	const [tokenAddress, setTokenAddress] = useState('')
-	const [governorAddress, setGovernorAddress] = useState('')
+	const [showValueInButton, setShowValueInButton] = useState(false)	
 	const [isLoading, setIsLoading] = useState(false)
 	const [isClaimLoading, setIsClaimLoading] = useState(false)
-	const [isDelegating, setIsDelegating] = useState(false)
-	const [, setCurrentNetwork] = useState('')
-	const [errorMessage, setErrorMessage] = useState('')
-	const [showError, setShowError] = useState(false)
+	const [isDelegating, setIsDelegating] = useState(false)	
 	const [showProposalForm, setShowProposalForm] = useState(false)
 	const [showProposalList, setShowProposalList] = useState(false)
 	const [hasClaimedTokens, setHasClaimedTokens] = useState(false)
 	const [hasVotingPower, setHasVotingPower] = useState(false)
 	const [isCanceling, setIsCanceling] = useState(false)
 
-	const { chain, address } = useAccount()
-	const { proposals, errors } = useProposalContext()
+	const { address } = useAccount()
+	const { proposals, governorAddress, tokenAddress, boxAddress } = useProposalContext()
+	const { setError, clearError } = useErrorContext()
 
 	// Get the latest proposal, assuming proposals are sorted by block number
-	const latestProposal = proposals.length > 0 ? proposals[0] : null
-
-	// Initialize network and contract addresses using Wagmi
-	useEffect(() => {
-		const initializeNetwork = async () => {
-			if (!chain) {
-				console.error('No chain detected')
-				return
-			}
-			const network = chain.id === 31337 ? 'localhost' : chain.name.toLowerCase()
-			setCurrentNetwork(network)
-
-			if (addresses[network]) {
-				setBoxAddress(addresses[network].box.address)
-				setTokenAddress(addresses[network].governanceToken.address)
-				setGovernorAddress(addresses[network].governor.address)
-			} else {
-				console.error(`Network ${network} not found in addresses.json`)
-			}
-		}
-		initializeNetwork()
-	}, [chain])
+	const latestProposal = proposals.length > 0 ? proposals[0] : null	
 
 	// Contract reads
 	const { data, refetch } = useReadContract({
@@ -119,8 +93,7 @@ function ActionButtons() {
 	useEffect(() => {
 		// Clear error when starting new transaction
 		if (isPending || isClaimLoading || isCancelPending || isCanceling) {
-			setErrorMessage('')
-			setShowError(false)
+			clearError('actionButtons')
 		}
 
 		// Handle write contract errors
@@ -145,47 +118,41 @@ function ActionButtons() {
 				message = 'An unknown error occurred'
 			}
 
-			setErrorMessage(message)
-			setShowError(true)
+			setError('actionButtons', message)
 			setIsClaimLoading(false)
 		}
 
 		// Handle delegation errors
 		if (delegateError) {
 			console.error('Delegation error:', delegateError)
-			setErrorMessage('Failed to delegate voting power')
-			setShowError(true)
+			setError('actionButtons', 'Failed to delegate voting power')
 			setIsDelegating(false)
 		}
 
 		// Handle cancel proposal errors
 		if (cancelError) {
 			console.error('Cancel proposal error:', cancelError)
-			setErrorMessage('Failed to cancel proposal')
-			setShowError(true)
+			setError('actionButtons', 'Failed to cancel proposal')
 			setIsCanceling(false)
 		}
 
 		// Handle transaction errors
 		if (txError) {
 			console.error('Transaction error:', txError)
-			setErrorMessage('Transaction failed')
-			setShowError(true)
+			setError('actionButtons', 'Transaction failed')
 			setIsClaimLoading(false)
 		}
 		if (delegateTxError) {
 			console.error('Delegation transaction error:', delegateTxError)
-			setErrorMessage('Delegation transaction failed')
-			setShowError(true)
+			setError('actionButtons', 'Delegation transaction failed')
 			setIsDelegating(false)
 		}
 		if (cancelTxError) {
 			console.error('Cancel transaction error:', cancelTxError)
-			setErrorMessage('Cancel transaction failed')
-			setShowError(true)
+			setError('actionButtons', 'Cancel transaction failed')
 			setIsCanceling(false)
 		}
-	}, [writeError, txError, delegateError, delegateTxError, cancelError, cancelTxError, isPending, isClaimLoading, isCancelPending, isCanceling])
+	}, [writeError, txError, delegateError, delegateTxError, cancelError, cancelTxError, isPending, isClaimLoading, isCancelPending, isCanceling, setError, clearError])
 
 	// Add token to MetaMask using wagmi/viem approach
 	const addTokenToMetamask = useCallback(async () => {
@@ -209,25 +176,22 @@ function ActionButtons() {
 			}
 		} catch (error) {
 			console.error('Error adding token to MetaMask', error)
-			setErrorMessage('Failed to add token to wallet')
-			setShowError(true)
+			setError('actionButtons', 'Failed to add token to wallet')
 		}
-	}, [tokenAddress])
+	}, [tokenAddress, setError])
 
 	// Handle Current Value button click
 	const handleGetCurrentValue = async () => {
 		try {
 			setIsLoading(true)
-			setErrorMessage('')
-			setShowError(false)
+			clearError('actionButtons')
 			await refetch()
 			const valueStr = data ? data.toString() : '0'
 			setDisplayValue(valueStr)
 			setShowValueInButton(!showValueInButton)
 		} catch (error) {
 			console.error('Error fetching current value:', error)
-			setErrorMessage('Failed to fetch current value')
-			setShowError(true)
+			setError('actionButtons', 'Failed to fetch current value')
 		} finally {
 			setIsLoading(false)
 		}
@@ -236,13 +200,13 @@ function ActionButtons() {
 	// Delegate voting power to self
 	const delegateVotingPower = useCallback(async () => {
 		if (!tokenAddress || !address) {
-			setErrorMessage('Address not set')
-			setShowError(true)
+			setError('actionButtons', 'Address not set')
 			return
 		}
 
 		try {
 			setIsDelegating(true)
+			clearError('actionButtons')
 
 			writeDelegation({
 				address: tokenAddress,
@@ -253,24 +217,21 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error delegating tokens:', error)
 			setIsDelegating(false)
-			setErrorMessage('Error delegating tokens')
-			setShowError(true)
+			setError('actionButtons', 'Error delegating tokens')
 		}
-	}, [tokenAddress, address, writeDelegation])
+	}, [tokenAddress, address, writeDelegation, setError, clearError])
 
 	// Handle Get Funds button click
 	const handleGetFunds = async () => {
 		if (!tokenAddress) {
-			setErrorMessage('Token address not set')
-			setShowError(true)
+			setError('actionButtons', 'Token address not set')
 			return
 		}
 
 		try {
 			setIsClaimLoading(true)
-			setErrorMessage('')
-			setShowError(false)
-
+			clearError('actionButtons')
+			
 			writeContract({
 				address: tokenAddress,
 				abi: GovernanceToken.abi,
@@ -279,23 +240,20 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error claiming tokens:', error)
 			setIsClaimLoading(false)
-			setErrorMessage('Error claiming tokens:', error)
-			setShowError(true)
+			setError('actionButtons', 'Error claiming tokens')
 		}
 	}
 
 	// Handle Cancel Proposal button click
 	const handleCancelProposal = async () => {
 		if (!governorAddress || !latestProposal) {
-			setErrorMessage('No proposal to cancel')
-			setShowError(true)
+			setError('actionButtons', 'No proposal to cancel')
 			return
 		}
 
 		try {
 			setIsCanceling(true)
-			setErrorMessage('')
-			setShowError(false)
+			clearError('actionButtons')
 
 			// Convert calldatas to an array if it's a string
 			const calldata = Array.isArray(latestProposal.calldatas)
@@ -316,8 +274,7 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error canceling proposal:', error)
 			setIsCanceling(false)
-			setErrorMessage('Error canceling proposal')
-			setShowError(true)
+			setError('actionButtons', 'Error canceling proposal')
 		}
 	}
 
@@ -329,11 +286,6 @@ function ActionButtons() {
 		if (canPropose) {
 			setShowProposalForm(true)
 		}
-	}
-
-	// Close error message
-	const closeError = () => {
-		setShowError(false)
 	}
 
 	// Effect to handle successful transaction
@@ -384,32 +336,7 @@ function ActionButtons() {
 
 	return (
 		<>
-			<div className="flex flex-col items-center w-full">
-				{/* Transaction Error Alert */}
-				{showError && (
-					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
-						<strong className="font-bold">Error: </strong>
-						<span className="block sm:inline">{errorMessage}</span>
-						<span
-							className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
-							onClick={closeError}
-						>
-							<span className="text-red-500">×</span>
-						</span>
-					</div>
-				)}
-
-				{/* Proposal Error Alert */}
-				{errors?.proposals && (
-					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
-						<strong className="font-bold">Proposal Error: </strong>
-						<span className="block sm:inline">{errors.proposals}</span>
-						<br />
-						<span className="block sm:inline"> Please, refresh the page</span>
-
-					</div>
-				)}
-
+			<div className="flex flex-col items-center w-full">				
 				{/* Action Buttons */}
 				<div className="bg-blue-500 p-4 mt-2 flex flex-wrap justify-center space-x-4 rounded-lg">
 					<button

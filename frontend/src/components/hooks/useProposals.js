@@ -2,18 +2,20 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useWatchContractEvent } from 'wagmi'
 import { ethers } from 'ethers'
 import MyGovernor from '../../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
+import { useErrorContext } from './useErrorContext'
 
 export function useProposals({ publicClient, chain, governorAddress, address, currentBlock }) {
 	const [proposals, setProposals] = useState([])
 	const [totalProposals, setTotalProposals] = useState(0)
 	const [isLoading, setIsLoading] = useState(true)
-	const [proposalError, setProposalError] = useState(null)
 	const proposalCache = useRef(new Map()) // Map<proposalId, proposalData>
 	const proposalsRef = useRef([])
+	const { setError, clearError } = useErrorContext()
 
 	// Utility: Check if user has voted
 	const hasUserVoted = useCallback(async (proposalId) => {
 		if (!address || !governorAddress || !publicClient) return false
+		clearError('proposals')
 		try {
 			const hasVoted = await publicClient.readContract({
 				address: governorAddress,
@@ -24,14 +26,15 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			return hasVoted
 		} catch (error) {
 			console.error('Error checking if user voted:', error)
+			setError('proposals', 'Failed to check if user voted.')
 			return false
 		}
-	}, [address, governorAddress, publicClient])
+	}, [address, governorAddress, publicClient, setError, clearError])
 
 	// Fetch single proposal data
 	const fetchProposalData = useCallback(async (proposalId, basicData) => {
 		if (!governorAddress || !publicClient || !chain) return null
-		setProposalError(null)
+		clearError('proposals')
 
 		const calls = [
 			{ address: governorAddress, abi: MyGovernor.abi, functionName: 'state', args: [proposalId] },
@@ -70,17 +73,17 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			}
 		} catch (err) {
 			console.error('Error fetching proposal data:', err)
-			setProposalError(`Failed to fetch data for proposal ${proposalId}.`)
+			setError('proposals', `Failed to fetch data for proposal ${proposalId}.`)
 			return null
 		}
-	}, [governorAddress, publicClient, chain, address, hasUserVoted])
+	}, [governorAddress, publicClient, chain, address, hasUserVoted,setError, clearError])
 
 	// Fetch all proposals
 	const fetchAllProposals = useCallback(async () => {
 		if (!governorAddress || !publicClient || !chain) return
 
 		setIsLoading(true)
-		setProposalError(null)
+		clearError('proposals')
 		try {
 			const events = await publicClient.getContractEvents({
 				address: governorAddress,
@@ -134,16 +137,16 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			setProposals(finalProposals)
 		} catch (error) {
 			console.error('Error fetching all proposals:', error)
-			setProposalError('Failed to fetch proposals. Please try again later.')
+			setError('proposals', 'Failed to fetch proposals. Please try again later.')
 		} finally {
 			setIsLoading(false)
 		}
-	}, [governorAddress, publicClient, chain, fetchProposalData])
+	}, [governorAddress, publicClient, chain, fetchProposalData, setError, clearError])
 
 	// Update single proposal based on event
 	const updateProposal = useCallback(async (proposalId, eventType, eventData) => {
 		if (!proposalCache.current.has(proposalId) && eventType !== 'ProposalCreated') return
-		setProposalError(null)
+		clearError('proposals')
 
 		let basicData = proposalCache.current.get(proposalId)
 		if (eventType === 'ProposalCreated') {
@@ -173,9 +176,9 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			setProposals(Array.from(proposalCache.current.values()))
 		} catch (err) {
 			console.error('Error updating proposal:', err)
-			setProposalError('Failed to update proposal. Please try again.')
+			setError('proposals', 'Failed to update proposal. Please try again.')
 		}
-	}, [fetchProposalData, publicClient])
+	}, [fetchProposalData, publicClient, setError, clearError])
 
 	// Event handlers
 	const handleProposalCreated = useCallback((logs) => {
@@ -220,6 +223,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'ProposalCreated',
 		onLogs: handleProposalCreated,
 		enabled: !!governorAddress,
+		onError: (err) => {
+			console.error('Error in ProposalCreated event:', err)
+			setError('proposals', 'Failed to watch ProposalCreated events.')
+		},
 	})
 
 	useWatchContractEvent({
@@ -228,6 +235,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'VoteCast',
 		onLogs: handleVoteCast,
 		enabled: !!governorAddress,
+		onError: (err) => {
+			console.error('Error in VoteCast event:', err)
+			setError('proposals', 'Failed to watch VoteCast events.')
+		},
 	})
 
 	useWatchContractEvent({
@@ -236,6 +247,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'ProposalQueued',
 		onLogs: handleProposalQueued,
 		enabled: !!governorAddress,
+		onError: (err) => {
+			console.error('Error in ProposalQueued event:', err)
+			setError('proposals', 'Failed to watch ProposalQueued events.')
+		},
 	})
 
 	useWatchContractEvent({
@@ -244,6 +259,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'ProposalExecuted',
 		onLogs: handleProposalExecuted,
 		enabled: !!governorAddress,
+		onError: (err) => {
+			console.error('Error in ProposalExecuted event:', err)
+			setError('proposals', 'Failed to watch ProposalExecuted events.')
+		},
 	})
 
 	// Periodic state check
@@ -251,7 +270,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		if (!currentBlock || !proposalsRef.current.length) return
 
 		const checkProposalStates = async () => {
-			setProposalError(null)
+			clearError('proposals')
 			try {
 				const updatedProposals = await Promise.all(
 					proposalsRef.current.map(async (proposal) => {
@@ -272,12 +291,12 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 				setProposals(updatedProposals)
 			} catch (err) {
 				console.error('Error checking proposal states:', err)
-				setProposalError('Failed to refresh proposal states.')
+				setError('proposals', 'Failed to refresh proposal states.')
 			}
 		}
 		const timeoutId = setTimeout(checkProposalStates, 500)
 		return () => clearTimeout(timeoutId)
-	}, [currentBlock, governorAddress, publicClient, fetchProposalData])
+	}, [currentBlock, governorAddress, publicClient, fetchProposalData, setError, clearError])
 
 	// Sync refs with state
 	useEffect(() => {
@@ -290,7 +309,6 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		totalProposals,
 		isLoading,
 		fetchProposals: fetchAllProposals,
-		hasUserVoted,
-		proposalError,
+		hasUserVoted
 	}
 }

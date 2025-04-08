@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { usePublicClient, useAccount } from 'wagmi'
-import addresses from '../addresses.json'
-import { ProposalContext } from './hooks/useProposalContext'
-import { useTiming } from './hooks/useTiming'
-import { useVotingPower } from './hooks/useVotingPower'
-import { useProposals } from './hooks/useProposals'
-import { useEligibleVoters } from './hooks/useEligibleVoters'
+import addresses from '../../addresses.json'
+import { ProposalContext } from '../hooks/useProposalContext'
+import { useTiming } from '../hooks/useTiming'
+import { useVotingPower } from '../hooks/useVotingPower'
+import { useProposals } from '../hooks/useProposals'
+import { useEligibleVoters } from '../hooks/useEligibleVoters'
 
 
 export function ProposalProvider({ children }) {
 	const [governorAddress, setGovernorAddress] = useState('')
 	const [tokenAddress, setTokenAddress] = useState('')
+	const [boxAddress, setBoxAddress] = useState('')
 	const publicClient = usePublicClient()
 	const { address, chain, isConnected } = useAccount()
 
@@ -21,18 +22,19 @@ export function ProposalProvider({ children }) {
 		if (addresses[network]) {
 			setGovernorAddress(addresses[network].governor.address)
 			setTokenAddress(addresses[network].governanceToken.address)
+			setBoxAddress(addresses[network].box.address)
 		}
 	}, [chain])
 
 
 	// Using timing hook
-	const { currentTime, currentBlock, blockTime, timingError } = useTiming({ publicClient, chain })
+	const { currentTime, currentBlock, blockTime } = useTiming({ publicClient, chain })
 
 	// Use voting power hook
 	const { votingPower } = useVotingPower({ tokenAddress, address })
 
 	// Use proposals hook
-	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted, proposalError } = useProposals({
+	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted } = useProposals({
 		publicClient,
 		chain,
 		governorAddress,
@@ -41,7 +43,7 @@ export function ProposalProvider({ children }) {
 	})
 
 	// Use eligible voters hook
-	const { eligibleVoters } = useEligibleVoters({ tokenAddress });
+	const { eligibleVoters } = useEligibleVoters({ tokenAddress })
 
 	const canExecuteProposal = useCallback((eta) => {
 		return eta > 0 && currentTime >= eta
@@ -51,6 +53,8 @@ export function ProposalProvider({ children }) {
 		proposals,
 		totalProposals,
 		governorAddress,
+		tokenAddress, // Add tokenAddress to context
+		boxAddress,
 		votingPower,
 		eligibleVoters,
 		isLoading,
@@ -60,15 +64,13 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
-		isConnected,
-		errors: {
-			proposals: proposalError,
-			timing: timingError,
-		}
+		isConnected
 	}), [
 		proposals,
 		totalProposals,
 		governorAddress,
+		tokenAddress, // Add tokenAddress to context
+		boxAddress,
 		votingPower,
 		eligibleVoters,
 		isLoading,
@@ -78,8 +80,7 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
-		isConnected,
-		proposalError, timingError
+		isConnected
 	])
 
 	return (

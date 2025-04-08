@@ -3,6 +3,7 @@ import { useWriteContract } from 'wagmi'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import ProposalCard from './ProposalCard'
 import { useProposalContext } from './hooks/useProposalContext'
+import { useErrorContext } from './hooks/useErrorContext'
 
 const PROPOSALS_PER_PAGE = 5
 
@@ -15,8 +16,7 @@ const ProposalListContent = () => {
 		governorAddress,
 		votingPower,
 		canExecuteProposal,		
-		isLoading,
-		errors
+		isLoading		
 	} = useProposalContext()
 
 
@@ -28,6 +28,7 @@ const ProposalListContent = () => {
 	const { writeContract: castVote, isPending: votingInProgress } = useWriteContract()
 	const { writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
 	const { writeContract: queueProposal, isPending: queueInProgress } = useWriteContract()
+	const { setError, clearError } = useErrorContext()
 
 	const paginatedProposals = useMemo(() => {
 		const startIdx = page * PROPOSALS_PER_PAGE
@@ -38,6 +39,7 @@ const ProposalListContent = () => {
 
 	const handleVote = useCallback(async (proposalId, support) => {
 		try {
+			clearError('proposalList')
 			await castVote({
 				address: governorAddress,
 				abi: MyGovernor.abi,
@@ -47,11 +49,13 @@ const ProposalListContent = () => {
 
 		} catch (error) {
 			console.error('Error voting:', error)
+			setError('proposalList', 'Failed to cast vote')
 		}
-	}, [governorAddress, castVote])
+	}, [governorAddress, castVote, setError, clearError])
 
 	const handleQueue = useCallback(async (proposal) => {
 		try {
+			clearError('proposalList')
 			await queueProposal({
 				address: governorAddress,
 				abi: MyGovernor.abi,
@@ -61,13 +65,15 @@ const ProposalListContent = () => {
 
 		} catch (error) {
 			console.error('Error queuing proposal:', error)
+			setError('proposalList', 'Failed to queue proposal')
 		}
-	}, [governorAddress, queueProposal])
+	}, [governorAddress, queueProposal, setError, clearError])
 
 	const handleExecute = useCallback(async (proposal) => {
 		// Double-check if proposal can be executed with fresh timestamp
 		if (!canExecuteProposal(proposal.eta)) {
 			console.error('Proposal not yet ready for execution')
+			setError('proposalList', 'Proposal not yet ready for execution')
 			return
 		}
 
@@ -87,6 +93,7 @@ const ProposalListContent = () => {
 		)
 
 		try {
+			clearError('proposalList')
 			await executeProposal({
 				address: governorAddress,
 				abi: MyGovernor.abi,
@@ -95,8 +102,9 @@ const ProposalListContent = () => {
 			})
 		} catch (error) {
 			console.error('Error executing proposal:', error)
+			setError('proposalList', 'Failed to execute proposal')
 		}
-	}, [governorAddress, executeProposal, canExecuteProposal])
+	}, [governorAddress, executeProposal, canExecuteProposal, setError, clearError])
 
 	const handleNextPage = useCallback(() => {
 		if ((page + 1) * PROPOSALS_PER_PAGE < totalProposals) {
@@ -145,17 +153,7 @@ const ProposalListContent = () => {
 
 	return (
 		<div className="mt-8">
-			<h2 className="text-2xl font-bold mb-4">Proposals</h2>
-			{errors.proposals && (
-				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-					<p>{errors.proposals}</p>
-				</div>
-			)}
-			{errors.timing && (
-				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-					<p>{errors.timing}</p>
-				</div>
-			)}
+			<h2 className="text-2xl font-bold mb-4">Proposals</h2>			
 			{votingPower === 0 && (
 				<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
 					<p>You don&apos;t have any voting power. Get tokens to participate in voting.</p>
