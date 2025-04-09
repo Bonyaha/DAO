@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useReadContract, useWatchContractEvent } from 'wagmi'
 import GovernanceToken from '../../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
 import { useErrorContext } from './useErrorContext'
@@ -7,7 +7,7 @@ export function useEligibleVoters({ tokenAddress }) {
 	const [eligibleVoters, setEligibleVoters] = useState(0)
 	const { setError, clearError } = useErrorContext()
 
-	const { data: tokenHoldersData, error: fetchError } = useReadContract({
+	const { data: tokenHoldersData, error: fetchError, refetch } = useReadContract({
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		functionName: 'getTokenHolders',
@@ -31,16 +31,28 @@ export function useEligibleVoters({ tokenAddress }) {
 		}
 	}, [tokenHoldersData, fetchError, setError, clearError])
 
+	// Function to refetch token holders
+	const refetchTokenHolders = useCallback(async () => {
+		if (!tokenAddress) return
+		try {
+			await refetch()
+		} catch (err) {
+			console.error('Error refetching token holders:', err)
+			setError('eligibleVoters', 'Failed to refetch eligible voters.')
+		}
+	}, [tokenAddress, refetch, setError]);
+
 	// Watch for events that might change the number of token holders
 	useWatchContractEvent({
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		eventName: 'TokenTransfer',
-		onLogs: () => {
-			// Refetch when tokens are transferred (could affect holder count)
-			if (tokenAddress) {
-				setEligibleVoters((prev) => prev) // Trigger re-fetch via useReadContract
+		onLogs: (logs) => {
+			if (!logs || !Array.isArray(logs) || logs.length === 0) {
+				console.warn('TokenTransfer: Received invalid logs:', logs)
+				return
 			}
+			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
 		onError: (err) => {
@@ -53,11 +65,12 @@ export function useEligibleVoters({ tokenAddress }) {
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		eventName: 'TokenMinted',
-		onLogs: () => {
-			// Refetch when new tokens are minted (could increase holders)
-			if (tokenAddress) {
-				setEligibleVoters((prev) => prev) // Trigger re-fetch via useReadContract
+		onLogs: (logs) => {
+			if (!logs || !Array.isArray(logs) || logs.length === 0) {
+				console.warn('TokenMinted: Received invalid logs:', logs)
+				return
 			}
+			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
 		onError: (err) => {
@@ -70,11 +83,12 @@ export function useEligibleVoters({ tokenAddress }) {
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		eventName: 'DelegateChanged',
-		onLogs: () => {
-			// Refetch when delegation changes (could affect voter eligibility)
-			if (tokenAddress) {
-				setEligibleVoters((prev) => prev) // Trigger re-fetch via useReadContract
+		onLogs: (logs) => {
+			if (!logs || !Array.isArray(logs) || logs.length === 0) {
+				console.warn('DelegateChanged: Received invalid logs:', logs)
+				return
 			}
+			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
 		onError: (err) => {
@@ -87,11 +101,12 @@ export function useEligibleVoters({ tokenAddress }) {
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		eventName: 'DelegateVotesChanged',
-		onLogs: () => {
-			// Refetch when delegated votes change (could affect voter eligibility)
-			if (tokenAddress) {
-				setEligibleVoters((prev) => prev) // Trigger re-fetch via useReadContract
+		onLogs: (logs) => {
+			if (!logs || !Array.isArray(logs) || logs.length === 0) {
+				console.warn('DelegateVotesChanged: Received invalid logs:', logs)
+				return
 			}
+			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
 		onError: (err) => {

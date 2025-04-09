@@ -76,7 +76,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			setError('proposals', `Failed to fetch data for proposal ${proposalId}.`)
 			return null
 		}
-	}, [governorAddress, publicClient, chain, address, hasUserVoted,setError, clearError])
+	}, [governorAddress, publicClient, chain, address, hasUserVoted, setError, clearError])
 
 	// Fetch all proposals
 	const fetchAllProposals = useCallback(async () => {
@@ -182,30 +182,56 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 
 	// Event handlers
 	const handleProposalCreated = useCallback((logs) => {
+		console.log('handleProposalCreated', logs)
+
+		if (!logs || logs.length === 0 || !Array.isArray(logs)) {
+			console.warn('handleProposalCreated: Received invalid logs:', logs)
+			return
+		}
 		logs.forEach((log) => {
-			const { proposalId, description, targets, values, calldatas } = log.args
-			updateProposal(proposalId, 'ProposalCreated', { description, targets, values, calldatas })
+			if (log && log.args) {
+				const { proposalId, description, targets, values, calldatas } = log.args
+				updateProposal(proposalId, 'ProposalCreated', { description, targets, values, calldatas })
+			}
 		})
 	}, [updateProposal])
 
 	const handleVoteCast = useCallback((logs) => {
+		if (!logs || logs.length === 0 || !Array.isArray(logs)) {
+			console.warn('handleVoteCast: Received invalid logs:', logs)
+			return
+		}
 		logs.forEach((log) => {
-			const { proposalId } = log.args
-			updateProposal(proposalId, 'VoteCast', {})
+			if (log && log.args) {
+				const { proposalId } = log.args
+				updateProposal(proposalId, 'VoteCast', {})
+			}
 		})
 	}, [updateProposal])
 
 	const handleProposalQueued = useCallback((logs) => {
+		if (!logs || logs.length === 0 || !Array.isArray(logs)) {
+			console.warn('handleProposalQueued: Received invalid logs:', logs)
+			return
+		}
 		logs.forEach((log) => {
-			const { proposalId } = log.args
-			updateProposal(proposalId, 'ProposalQueued', {})
+			if (log && log.args) {
+				const { proposalId } = log.args
+				updateProposal(proposalId, 'ProposalQueued', {})
+			}
 		})
 	}, [updateProposal])
 
 	const handleProposalExecuted = useCallback((logs) => {
+		if (!logs || logs.length === 0 || !Array.isArray(logs)) {
+			console.warn('handleProposalExecuted: Received invalid logs:', logs)
+			return
+		}
 		logs.forEach((log) => {
-			const { proposalId } = log.args
-			updateProposal(proposalId, 'ProposalExecuted', { blockNumber: log.blockNumber })
+			if (log && log.args) {
+				const { proposalId } = log.args
+				updateProposal(proposalId, 'ProposalExecuted', { blockNumber: log.blockNumber })
+			}
 		})
 	}, [updateProposal])
 
@@ -221,7 +247,11 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		address: governorAddress,
 		abi: MyGovernor.abi,
 		eventName: 'ProposalCreated',
-		onLogs: handleProposalCreated,
+		onLogs(logs) {
+			console.log('New logs!', logs)
+			handleProposalCreated
+		},
+		//onLogs: handleProposalCreated,
 		enabled: !!governorAddress,
 		onError: (err) => {
 			console.error('Error in ProposalCreated event:', err)
