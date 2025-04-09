@@ -249,7 +249,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'ProposalCreated',
 		onLogs(logs) {
 			console.log('New logs!', logs)
-			handleProposalCreated
+			handleProposalCreated(logs)
 		},
 		//onLogs: handleProposalCreated,
 		enabled: !!governorAddress,
