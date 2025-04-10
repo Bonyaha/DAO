@@ -55,10 +55,10 @@ export function useEligibleVoters({ tokenAddress }) {
 			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in TokenTransfer event:', err)
 			setError('eligibleVoters', 'Failed to watch TokenTransfer events.')
-		}
+		} */
 	})
 
 	useWatchContractEvent({
@@ -73,10 +73,10 @@ export function useEligibleVoters({ tokenAddress }) {
 			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in TokenMinted event:', err)
 			setError('eligibleVoters', 'Failed to watch TokenMinted events.')
-		}
+		} */
 	})
 
 	useWatchContractEvent({
@@ -91,10 +91,10 @@ export function useEligibleVoters({ tokenAddress }) {
 			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in DelegateChanged event:', err)
 			setError('eligibleVoters', 'Failed to watch DelegateChanged events.')
-		}
+		} */
 	})
 
 	useWatchContractEvent({
@@ -109,10 +109,10 @@ export function useEligibleVoters({ tokenAddress }) {
 			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in DelegateVotesChanged event:', err)
 			setError('eligibleVoters', 'Failed to watch DelegateVotesChanged events.')
-		}
+		} */
 	})
 
 	return { eligibleVoters }

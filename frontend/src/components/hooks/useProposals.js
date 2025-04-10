@@ -247,16 +247,17 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		address: governorAddress,
 		abi: MyGovernor.abi,
 		eventName: 'ProposalCreated',
-		onLogs(logs) {
+onLogs: handleProposalCreated,
+		/* onLogs(logs) {
 			console.log('New logs!', logs)
 			handleProposalCreated(logs)
-		},
+		}, */
 		//onLogs: handleProposalCreated,
 		enabled: !!governorAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in ProposalCreated event:', err)
 			setError('proposals', 'Failed to watch ProposalCreated events.')
-		},
+		}, */
 	})
 
 	useWatchContractEvent({
@@ -265,10 +266,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'VoteCast',
 		onLogs: handleVoteCast,
 		enabled: !!governorAddress,
-		onError: (err) => {
+	/* 	onError: (err) => {
 			console.error('Error in VoteCast event:', err)
 			setError('proposals', 'Failed to watch VoteCast events.')
-		},
+		}, */
 	})
 
 	useWatchContractEvent({
@@ -277,10 +278,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'ProposalQueued',
 		onLogs: handleProposalQueued,
 		enabled: !!governorAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in ProposalQueued event:', err)
 			setError('proposals', 'Failed to watch ProposalQueued events.')
-		},
+		}, */
 	})
 
 	useWatchContractEvent({
@@ -289,10 +290,10 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		eventName: 'ProposalExecuted',
 		onLogs: handleProposalExecuted,
 		enabled: !!governorAddress,
-		onError: (err) => {
+		/* onError: (err) => {
 			console.error('Error in ProposalExecuted event:', err)
 			setError('proposals', 'Failed to watch ProposalExecuted events.')
-		},
+		}, */
 	})
 
 	// Periodic state check
