@@ -32,6 +32,7 @@ export function useTiming({ publicClient, chain }) {
 	const { data: blockNumberData } = useBlockNumber({ watch: true })
 	const debouncedBlockNumber = useDebounce(blockNumberData, 1000)
 	const { setError, clearError } = useErrorContext()
+console.log(`curentBlock: ${currentBlock}`);
 
 	// Detect block time
 	useEffect(() => {
