@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { useEffect, useState, useCallback } from 'react'
 import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { BaseError, ContractFunctionRevertedError } from 'viem'
@@ -8,7 +9,7 @@ import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import ProposalForm from './ProposalForm'
 import ProposalList from './ProposalList'
 import { useProposalContext } from './hooks/useProposalContext'
-import { useErrorContext } from './hooks/useErrorContext'
+
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
@@ -21,10 +22,12 @@ function ActionButtons() {
 	const [hasClaimedTokens, setHasClaimedTokens] = useState(false)
 	const [hasVotingPower, setHasVotingPower] = useState(false)
 	const [isCanceling, setIsCanceling] = useState(false)
+	const [errorMessage, setErrorMessage] = useState('')
+	const [showError, setShowError] = useState(false)
 
 	const { address } = useAccount()
-	const { proposals, governorAddress, tokenAddress, boxAddress } = useProposalContext()
-	const { setError, clearError } = useErrorContext()
+	const { proposals, errors, governorAddress, tokenAddress, boxAddress } = useProposalContext()
+	
 
 	// Get the latest proposal, assuming proposals are sorted by block number
 	const latestProposal = proposals.length > 0 ? proposals[0] : null	
@@ -93,7 +96,8 @@ function ActionButtons() {
 	useEffect(() => {
 		// Clear error when starting new transaction
 		if (isPending || isClaimLoading || isCancelPending || isCanceling) {
-			clearError('actionButtons')
+			setErrorMessage('')
+			setShowError(false)
 		}
 
 		// Handle write contract errors
@@ -118,41 +122,47 @@ function ActionButtons() {
 				message = 'An unknown error occurred'
 			}
 
-			setError('actionButtons', message)
+			setErrorMessage(message)
+			setShowError(true)
 			setIsClaimLoading(false)
 		}
 
 		// Handle delegation errors
 		if (delegateError) {
 			console.error('Delegation error:', delegateError)
-			setError('actionButtons', 'Failed to delegate voting power')
+			setErrorMessage('Failed to delegate voting power')
+			setShowError(true)
 			setIsDelegating(false)
 		}
 
 		// Handle cancel proposal errors
 		if (cancelError) {
 			console.error('Cancel proposal error:', cancelError)
-			setError('actionButtons', 'Failed to cancel proposal')
+			setErrorMessage('Failed to cancel proposal')
+			setShowError(true)
 			setIsCanceling(false)
 		}
 
 		// Handle transaction errors
 		if (txError) {
 			console.error('Transaction error:', txError)
-			setError('actionButtons', 'Transaction failed')
+			setErrorMessage('Transaction failed')
+			setShowError(true)
 			setIsClaimLoading(false)
 		}
 		if (delegateTxError) {
 			console.error('Delegation transaction error:', delegateTxError)
-			setError('actionButtons', 'Delegation transaction failed')
+			setErrorMessage('Delegation transaction failed')
+			setShowError(true)
 			setIsDelegating(false)
 		}
 		if (cancelTxError) {
 			console.error('Cancel transaction error:', cancelTxError)
-			setError('actionButtons', 'Cancel transaction failed')
+			setErrorMessage('Cancel transaction failed')
+			setShowError(true)
 			setIsCanceling(false)
 		}
-	}, [writeError, txError, delegateError, delegateTxError, cancelError, cancelTxError, isPending, isClaimLoading, isCancelPending, isCanceling, setError, clearError])
+	}, [writeError, txError, delegateError, delegateTxError, cancelError, cancelTxError, isPending, isClaimLoading, isCancelPending, isCanceling])
 
 	// Add token to MetaMask using wagmi/viem approach
 	const addTokenToMetamask = useCallback(async () => {
@@ -176,22 +186,26 @@ function ActionButtons() {
 			}
 		} catch (error) {
 			console.error('Error adding token to MetaMask', error)
-			setError('actionButtons', 'Failed to add token to wallet')
+			setErrorMessage('Failed to add token to wallet')
+			setShowError(true)
 		}
-	}, [tokenAddress, setError])
+	}, [tokenAddress])
 
 	// Handle Current Value button click
 	const handleGetCurrentValue = async () => {
 		try {
 			setIsLoading(true)
-			clearError('actionButtons')
+			setErrorMessage('')
+			setShowError(false)
+
 			await refetch()
 			const valueStr = data ? data.toString() : '0'
 			setDisplayValue(valueStr)
 			setShowValueInButton(!showValueInButton)
 		} catch (error) {
 			console.error('Error fetching current value:', error)
-			setError('actionButtons', 'Failed to fetch current value')
+			setErrorMessage('Failed to fetch current value')
+			setShowError(true)
 		} finally {
 			setIsLoading(false)
 		}
@@ -200,7 +214,8 @@ function ActionButtons() {
 	// Delegate voting power to self
 	const delegateVotingPower = useCallback(async () => {
 		if (!tokenAddress || !address) {
-			setError('actionButtons', 'Address not set')
+			setErrorMessage('Address not set')
+			setShowError(true)
 			return
 		}
 
@@ -217,20 +232,24 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error delegating tokens:', error)
 			setIsDelegating(false)
-			setError('actionButtons', 'Error delegating tokens')
+			setErrorMessage('Error delegating tokens')
+			setShowError(true)
 		}
-	}, [tokenAddress, address, writeDelegation, setError, clearError])
+	}, [tokenAddress, address, writeDelegation])
 
 	// Handle Get Funds button click
 	const handleGetFunds = async () => {
 		if (!tokenAddress) {
-			setError('actionButtons', 'Token address not set')
+			setErrorMessage('Token address not set')
+			setShowError(true)
 			return
 		}
 
 		try {
 			setIsClaimLoading(true)
-			clearError('actionButtons')
+			setErrorMessage('')
+			setShowError(false)
+
 			
 			writeContract({
 				address: tokenAddress,
@@ -240,20 +259,23 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error claiming tokens:', error)
 			setIsClaimLoading(false)
-			setError('actionButtons', 'Error claiming tokens')
+			setErrorMessage('Error claiming tokens:', error)
+			setShowError(true)
 		}
 	}
 
 	// Handle Cancel Proposal button click
 	const handleCancelProposal = async () => {
 		if (!governorAddress || !latestProposal) {
-			setError('actionButtons', 'No proposal to cancel')
+			setErrorMessage('No proposal to cancel')
+			setShowError(true)
 			return
 		}
 
 		try {
 			setIsCanceling(true)
-			clearError('actionButtons')
+			setErrorMessage('')
+			setShowError(false)
 
 			// Convert calldatas to an array if it's a string
 			const calldata = Array.isArray(latestProposal.calldatas)
@@ -274,7 +296,8 @@ function ActionButtons() {
 		} catch (error) {
 			console.error('Error canceling proposal:', error)
 			setIsCanceling(false)
-			setError('actionButtons', 'Error canceling proposal')
+			setErrorMessage('Error canceling proposal')
+			setShowError(true)
 		}
 	}
 
@@ -286,6 +309,11 @@ function ActionButtons() {
 		if (canPropose) {
 			setShowProposalForm(true)
 		}
+	}
+
+	// Close error message
+	const closeError = () => {
+		setShowError(false)
 	}
 
 	// Effect to handle successful transaction
@@ -336,7 +364,32 @@ function ActionButtons() {
 
 	return (
 		<>
-			<div className="flex flex-col items-center w-full">				
+			<div className="flex flex-col items-center w-full">			
+				{/* Transaction Error Alert */}
+				{showError && (
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
+						<strong className="font-bold">Error: </strong>
+						<span className="block sm:inline">{errorMessage}</span>
+						<span
+							className="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+							onClick={closeError}
+						>
+							<span className="text-red-500">×</span>
+						</span>
+					</div>
+				)}
+
+				{/* Proposal Error Alert */}
+				{errors?.proposals && (
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
+						<strong className="font-bold">Proposal Error: </strong>
+						<span className="block sm:inline">{errors.proposals}</span>
+						<br />
+						<span className="block sm:inline"> Please, refresh the page</span>
+
+					</div>
+				)}
+
 				{/* Action Buttons */}
 				<div className="bg-blue-500 p-4 mt-2 flex flex-wrap justify-center space-x-4 rounded-lg">
 					<button

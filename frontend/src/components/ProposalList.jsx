@@ -3,11 +3,8 @@ import { useWriteContract } from 'wagmi'
 import MyGovernor from '../artifacts/contracts/MyGovernor.sol/MyGovernor.json'
 import ProposalCard from './ProposalCard'
 import { useProposalContext } from './hooks/useProposalContext'
-import { useErrorContext } from './hooks/useErrorContext'
 
 const PROPOSALS_PER_PAGE = 5
-
-
 
 const ProposalListContent = () => {
 	const {
@@ -16,7 +13,8 @@ const ProposalListContent = () => {
 		governorAddress,
 		votingPower,
 		canExecuteProposal,		
-		isLoading		
+		isLoading,
+		errors
 	} = useProposalContext()
 
 
@@ -27,8 +25,7 @@ const ProposalListContent = () => {
 
 	const { writeContract: castVote, isPending: votingInProgress } = useWriteContract()
 	const { writeContract: executeProposal, isPending: executionInProgress } = useWriteContract()
-	const { writeContract: queueProposal, isPending: queueInProgress } = useWriteContract()
-	const { setError, clearError } = useErrorContext()
+	const { writeContract: queueProposal, isPending: queueInProgress } = useWriteContract()	
 
 	const paginatedProposals = useMemo(() => {
 		const startIdx = page * PROPOSALS_PER_PAGE
@@ -38,8 +35,7 @@ const ProposalListContent = () => {
 
 
 	const handleVote = useCallback(async (proposalId, support) => {
-		try {
-			clearError('proposalList')
+		try {		
 			await castVote({
 				address: governorAddress,
 				abi: MyGovernor.abi,
@@ -48,14 +44,12 @@ const ProposalListContent = () => {
 			})
 
 		} catch (error) {
-			console.error('Error voting:', error)
-			setError('proposalList', 'Failed to cast vote')
+			console.error('Error voting:', error)			
 		}
-	}, [governorAddress, castVote, setError, clearError])
+	}, [governorAddress, castVote])
 
 	const handleQueue = useCallback(async (proposal) => {
-		try {
-			clearError('proposalList')
+		try {			
 			await queueProposal({
 				address: governorAddress,
 				abi: MyGovernor.abi,
@@ -64,16 +58,14 @@ const ProposalListContent = () => {
 			})
 
 		} catch (error) {
-			console.error('Error queuing proposal:', error)
-			setError('proposalList', 'Failed to queue proposal')
+			console.error('Error queuing proposal:', error)			
 		}
-	}, [governorAddress, queueProposal, setError, clearError])
+	}, [governorAddress, queueProposal])
 
 	const handleExecute = useCallback(async (proposal) => {
 		// Double-check if proposal can be executed with fresh timestamp
 		if (!canExecuteProposal(proposal.eta)) {
-			console.error('Proposal not yet ready for execution')
-			setError('proposalList', 'Proposal not yet ready for execution')
+			console.error('Proposal not yet ready for execution')			
 			return
 		}
 
@@ -91,9 +83,7 @@ const ProposalListContent = () => {
 				2
 			)
 		)
-
-		try {
-			clearError('proposalList')
+		try {		
 			await executeProposal({
 				address: governorAddress,
 				abi: MyGovernor.abi,
@@ -101,10 +91,9 @@ const ProposalListContent = () => {
 				args: [proposal.targets, proposal.values, proposal.calldatas, proposal.descriptionHash],
 			})
 		} catch (error) {
-			console.error('Error executing proposal:', error)
-			setError('proposalList', 'Failed to execute proposal')
+			console.error('Error executing proposal:', error)		
 		}
-	}, [governorAddress, executeProposal, canExecuteProposal, setError, clearError])
+	}, [governorAddress, executeProposal, canExecuteProposal])
 
 	const handleNextPage = useCallback(() => {
 		if ((page + 1) * PROPOSALS_PER_PAGE < totalProposals) {
@@ -153,7 +142,17 @@ const ProposalListContent = () => {
 
 	return (
 		<div className="mt-8">
-			<h2 className="text-2xl font-bold mb-4">Proposals</h2>			
+			<h2 className="text-2xl font-bold mb-4">Proposals</h2>
+			{errors.proposals && (
+				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+					<p>{errors.proposals}</p>
+				</div>
+			)}
+			{errors.timing && (
+				<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+					<p>{errors.timing}</p>
+				</div>
+			)}	
 			{votingPower === 0 && (
 				<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
 					<p>You don&apos;t have any voting power. Get tokens to participate in voting.</p>

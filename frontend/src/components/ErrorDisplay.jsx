@@ -1,7 +1,8 @@
-import { useErrorContext } from './hooks/useErrorContext'
+//import { useErrorContext } from './hooks/useErrorContext'
+import { useProposalContext } from './hooks/useProposalContext'
 
 export function ErrorDisplay() {
-	const { errors, clearError } = useErrorContext()
+	const { errors, clearError } = useProposalContext()
 
 	if (!Object.values(errors).some((error) => error)) {
 		return null

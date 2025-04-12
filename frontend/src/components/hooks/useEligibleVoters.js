@@ -1,11 +1,12 @@
+/* eslint-disable no-undef */
 import { useState, useEffect, useCallback } from 'react'
 import { useReadContract, useWatchContractEvent } from 'wagmi'
 import GovernanceToken from '../../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
-import { useErrorContext } from './useErrorContext'
+//import { useErrorContext } from './useErrorContext'
 
 export function useEligibleVoters({ tokenAddress }) {
 	const [eligibleVoters, setEligibleVoters] = useState(0)
-	const { setError, clearError } = useErrorContext()
+	//const { setError, clearError } = useErrorContext()
 
 	const { data: tokenHoldersData, error: fetchError, refetch } = useReadContract({
 		address: tokenAddress,
@@ -22,14 +23,14 @@ export function useEligibleVoters({ tokenAddress }) {
 		} else if (tokenHoldersData !== undefined) {
 			try {
 				setEligibleVoters(Number(tokenHoldersData))
-				clearError('eligibleVoters')
+				//clearError('eligibleVoters')
 			} catch (err) {
 				console.error('Error formatting eligible voters:', err)
 				setError('eligibleVoters', 'Failed to format eligible voters.')
 				setEligibleVoters(0)
 			}
 		}
-	}, [tokenHoldersData, fetchError, setError, clearError])
+	}, [tokenHoldersData, fetchError])
 
 	// Function to refetch token holders
 	const refetchTokenHolders = useCallback(async () => {
@@ -38,9 +39,9 @@ export function useEligibleVoters({ tokenAddress }) {
 			await refetch()
 		} catch (err) {
 			console.error('Error refetching token holders:', err)
-			setError('eligibleVoters', 'Failed to refetch eligible voters.')
+			//setError('eligibleVoters', 'Failed to refetch eligible voters.')
 		}
-	}, [tokenAddress, refetch, setError]);
+	}, [tokenAddress, refetch]);
 
 	// Watch for events that might change the number of token holders
 	useWatchContractEvent({

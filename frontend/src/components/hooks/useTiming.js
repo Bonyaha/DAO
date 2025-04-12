@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useBlockNumber } from 'wagmi'
-import { useErrorContext } from './useErrorContext'
 
 const useDebounce = (value, delay) => {
 	const [debouncedValue, setDebouncedValue] = useState(value)
@@ -31,14 +30,15 @@ export function useTiming({ publicClient, chain }) {
 	const previousBlockRef = useRef(0)
 	const { data: blockNumberData } = useBlockNumber({ watch: true })
 	const debouncedBlockNumber = useDebounce(blockNumberData, 1000)
-	const { setError, clearError } = useErrorContext()
+	const [timingError, setTimingError] = useState(null)
+
 console.log(`curentBlock: ${currentBlock}`);
 
 	// Detect block time
 	useEffect(() => {
 		const detectBlockTime = async () => {
 			if (!publicClient) return
-			clearError('timing')
+			setTimingError(null)
 			try {
 				const latestBlock = await publicClient.getBlock()
 				const previousBlock = await publicClient.getBlock(latestBlock.number - 1n)
@@ -46,12 +46,12 @@ console.log(`curentBlock: ${currentBlock}`);
 				setBlockTime(timeDiff > 0 ? timeDiff : BLOCK_TIME_FALLBACKS[chain?.id] || 12)
 			} catch (err) {
 				console.error('Error detecting block time:', err)
-				setError('timing', 'Failed to detect block time. Using default value.')
+				setTimingError('Failed to detect block time. Using default value.')
 				setBlockTime(BLOCK_TIME_FALLBACKS[chain?.id] || 12) // Fallback to default
 			}
 		}
 		detectBlockTime()
-	}, [publicClient, chain, setError, clearError])
+	}, [publicClient, chain])
 
 	// Update current block
 	useEffect(() => {
@@ -68,20 +68,20 @@ console.log(`curentBlock: ${currentBlock}`);
 	useEffect(() => {
 		if (!publicClient) return
 		const updateTime = async () => {
-			clearError('timing')
+			setTimingError(null)
 			try {
 				const block = await publicClient.getBlock()
 				setCurrentTime(Number(block.timestamp))
 			} catch (error) {
 				console.error('Error fetching block timestamp:', error)
-				setError('timing', 'Failed to fetch current block timestamp.')
+				setTimingError('Failed to fetch current block timestamp.')
 			}
 		}
 		updateTime()
 		const interval = setInterval(updateTime, 10000)
 		return () => clearInterval(interval)
-	}, [publicClient, setError, clearError])
+	}, [publicClient])
 
 
-	return { currentTime, currentBlock, blockTime }
+	return { currentTime, currentBlock, blockTime, timingError }
 }

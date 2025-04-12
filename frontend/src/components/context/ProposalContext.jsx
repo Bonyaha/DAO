@@ -25,16 +25,16 @@ export function ProposalProvider({ children }) {
 			setBoxAddress(addresses[network].box.address)
 		}
 	}, [chain])
-
+	
 
 	// Using timing hook
-	const { currentTime, currentBlock, blockTime } = useTiming({ publicClient, chain })
+	const { currentTime, currentBlock, blockTime, timingError } = useTiming({ publicClient, chain })
 
 	// Use voting power hook
 	const { votingPower } = useVotingPower({ tokenAddress, address })
 
 	// Use proposals hook
-	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted } = useProposals({
+	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted, proposalError } = useProposals({
 		publicClient,
 		chain,
 		governorAddress,
@@ -64,7 +64,12 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
-		isConnected
+		isConnected,
+		errors: {
+			proposals: proposalError,
+			timing: timingError,
+		}
+		
 	}), [
 		proposals,
 		totalProposals,
@@ -80,7 +85,9 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
-		isConnected
+		isConnected,
+		proposalError, timingError
+		
 	])
 
 	return (

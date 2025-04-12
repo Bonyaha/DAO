@@ -5,8 +5,8 @@ import DashboardCards from './components/DashboardCards'
 import ActionButtons from './components/ActionButtons'
 import { WalletOptions } from './components/wallet-options'
 import { ProposalProvider } from './components/context/ProposalContext'
-import { ErrorProvider } from './components/context/ErrorContext'
-import { ErrorDisplay } from './components/ErrorDisplay'
+//import { ErrorProvider } from './components/context/ErrorContext'
+//import { ErrorDisplay } from './components/ErrorDisplay'
 
 
 function App() {
@@ -42,9 +42,7 @@ function App() {
     )
   }
 
-  return (
-    <ErrorProvider>
-     
+  return (     
       <ProposalProvider>
         <div className="min-h-screen bg-gray-100">
           <div className="container mx-auto p-4">
@@ -59,16 +57,13 @@ function App() {
                   Disconnect
                 </button>
               </div>
-            </div>
-
-             <ErrorDisplay />
+            </div>           
             <HeaderBanner />
             <DashboardCards />
             <ActionButtons />
           </div>
         </div>
-      </ProposalProvider>
-    </ErrorProvider>
+      </ProposalProvider>    
   )
 }
 

@@ -1,12 +1,13 @@
+/* eslint-disable no-undef */
 import { useState, useEffect } from 'react'
 import { useReadContract } from 'wagmi'
 import { ethers } from 'ethers'
 import GovernanceToken from '../../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
-import { useErrorContext } from './useErrorContext'
+//import { useErrorContext } from './useErrorContext'
 
 export function useVotingPower({ tokenAddress, address }) {
 	const [votingPower, setVotingPower] = useState(0)
-	const { setError, clearError } = useErrorContext()
+	//const { setError, clearError } = useErrorContext()
 
 	const { data: userVotingPower, error: fetchError } = useReadContract({
 		address: tokenAddress,
@@ -24,7 +25,7 @@ export function useVotingPower({ tokenAddress, address }) {
 		} else if (userVotingPower !== undefined) {
 			try {
 				setVotingPower(Number(ethers.formatEther(userVotingPower)))
-				clearError('votingPower')
+				//clearError('votingPower')
 			} catch (err) {
 				console.error('Error formatting voting power:', err)
 				setError('votingPower', 'Failed to format voting power.')
@@ -32,7 +33,7 @@ export function useVotingPower({ tokenAddress, address }) {
 			}
 		}
 		
-	}, [userVotingPower, fetchError, setError, clearError])
+	}, [userVotingPower, fetchError])
 
 	return { votingPower }
 }
