@@ -2,11 +2,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useReadContract, useWatchContractEvent } from 'wagmi'
 import GovernanceToken from '../../artifacts/contracts/GovernanceToken.sol/GovernanceToken.json'
-//import { useErrorContext } from './useErrorContext'
 
 export function useEligibleVoters({ tokenAddress }) {
-	const [eligibleVoters, setEligibleVoters] = useState(0)
-	//const { setError, clearError } = useErrorContext()
+	const [eligibleVoters, setEligibleVoters] = useState(0)	
 
 	const { data: tokenHoldersData, error: fetchError, refetch } = useReadContract({
 		address: tokenAddress,
@@ -22,8 +20,7 @@ export function useEligibleVoters({ tokenAddress }) {
 			setEligibleVoters(0)
 		} else if (tokenHoldersData !== undefined) {
 			try {
-				setEligibleVoters(Number(tokenHoldersData))
-				//clearError('eligibleVoters')
+				setEligibleVoters(Number(tokenHoldersData))				
 			} catch (err) {
 				console.error('Error formatting eligible voters:', err)
 				setError('eligibleVoters', 'Failed to format eligible voters.')
@@ -38,8 +35,7 @@ export function useEligibleVoters({ tokenAddress }) {
 		try {
 			await refetch()
 		} catch (err) {
-			console.error('Error refetching token holders:', err)
-			//setError('eligibleVoters', 'Failed to refetch eligible voters.')
+			console.error('Error refetching token holders:', err)			
 		}
 	}, [tokenAddress, refetch]);
 
@@ -55,11 +51,7 @@ export function useEligibleVoters({ tokenAddress }) {
 			}
 			refetchTokenHolders()
 		},
-		enabled: !!tokenAddress,
-		/* onError: (err) => {
-			console.error('Error in TokenTransfer event:', err)
-			setError('eligibleVoters', 'Failed to watch TokenTransfer events.')
-		} */
+		enabled: !!tokenAddress,		
 	})
 
 	useWatchContractEvent({
@@ -73,11 +65,7 @@ export function useEligibleVoters({ tokenAddress }) {
 			}
 			refetchTokenHolders()
 		},
-		enabled: !!tokenAddress,
-		/* onError: (err) => {
-			console.error('Error in TokenMinted event:', err)
-			setError('eligibleVoters', 'Failed to watch TokenMinted events.')
-		} */
+		enabled: !!tokenAddress,		
 	})
 
 	useWatchContractEvent({
@@ -91,11 +79,7 @@ export function useEligibleVoters({ tokenAddress }) {
 			}
 			refetchTokenHolders()
 		},
-		enabled: !!tokenAddress,
-		/* onError: (err) => {
-			console.error('Error in DelegateChanged event:', err)
-			setError('eligibleVoters', 'Failed to watch DelegateChanged events.')
-		} */
+		enabled: !!tokenAddress,		
 	})
 
 	useWatchContractEvent({
@@ -109,11 +93,7 @@ export function useEligibleVoters({ tokenAddress }) {
 			}
 			refetchTokenHolders()
 		},
-		enabled: !!tokenAddress,
-		/* onError: (err) => {
-			console.error('Error in DelegateVotesChanged event:', err)
-			setError('eligibleVoters', 'Failed to watch DelegateVotesChanged events.')
-		} */
+		enabled: !!tokenAddress,		
 	})
 
 	return { eligibleVoters }
