@@ -14,7 +14,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 
 	// Utility: Check if user has voted
 	const hasUserVoted = useCallback(async (proposalId) => {
-		if (!address || !governorAddress || !publicClient) return false		
+		if (!address || !governorAddress || !publicClient) return false
 		try {
 			const hasVoted = await publicClient.readContract({
 				address: governorAddress,
@@ -107,6 +107,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 					calldatas,
 					descriptionHash: ethers.id(description),
 					executedAt: 0,
+					blockNumber: Number(event.blockNumber)
 				}
 				return await fetchProposalData(proposalId, basicData)
 			})
@@ -149,7 +150,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 
 		let basicData = proposalCache.current.get(proposalId)
 		if (eventType === 'ProposalCreated') {
-			const { description, targets, values, calldatas } = eventData
+			const { description, targets, values, calldatas, blockNumber } = eventData
 			const [title, desc] = description.split(':').map((s) => s.trim())
 			basicData = {
 				id: proposalId,
@@ -160,6 +161,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 				calldatas,
 				descriptionHash: ethers.id(description),
 				executedAt: 0,
+				blockNumber: Number(blockNumber)
 			}
 			setTotalProposals((prev) => prev + 1)
 		}
@@ -172,7 +174,14 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 			}
 
 			proposalCache.current.set(proposalId, updatedData)
-			setProposals(Array.from(proposalCache.current.values()))
+			console.log('Updated proposal:', Array.from(proposalCache.current.values()))
+
+			const updatedProposals = Array.from(proposalCache.current.values()).sort(
+				(a, b) => Number(b.blockNumber) - Number(a.blockNumber)
+			)
+			console.log('sorted proposals:', updatedProposals)
+
+			setProposals(updatedProposals)
 		} catch (err) {
 			console.error('Error updating proposal:', err)
 			setProposalError('Failed to update proposal. Please try again.')
@@ -190,7 +199,13 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		logs.forEach((log) => {
 			if (log && log.args) {
 				const { proposalId, description, targets, values, calldatas } = log.args
-				updateProposal(proposalId, 'ProposalCreated', { description, targets, values, calldatas })
+				updateProposal(proposalId, 'ProposalCreated', {
+					description,
+					targets,
+					values,
+					calldatas,
+					blockNumber: log.blockNumber
+				})
 			}
 		})
 	}, [updateProposal])
@@ -203,7 +218,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		logs.forEach((log) => {
 			if (log && log.args) {
 				const { proposalId } = log.args
-				updateProposal(proposalId, 'VoteCast', {})
+				updateProposal(proposalId, 'VoteCast', { blockNumber: log.blockNumber })
 			}
 		})
 	}, [updateProposal])
@@ -216,7 +231,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		logs.forEach((log) => {
 			if (log && log.args) {
 				const { proposalId } = log.args
-				updateProposal(proposalId, 'ProposalQueued', {})
+				updateProposal(proposalId, 'ProposalQueued', { blockNumber: log.blockNumber })
 			}
 		})
 	}, [updateProposal])
@@ -255,7 +270,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		abi: MyGovernor.abi,
 		eventName: 'VoteCast',
 		onLogs: handleVoteCast,
-		enabled: !!governorAddress,	
+		enabled: !!governorAddress,
 	})
 
 	useWatchContractEvent({
@@ -263,7 +278,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		abi: MyGovernor.abi,
 		eventName: 'ProposalQueued',
 		onLogs: handleProposalQueued,
-		enabled: !!governorAddress,	
+		enabled: !!governorAddress,
 	})
 
 	useWatchContractEvent({
@@ -271,7 +286,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 		abi: MyGovernor.abi,
 		eventName: 'ProposalExecuted',
 		onLogs: handleProposalExecuted,
-		enabled: !!governorAddress,		
+		enabled: !!governorAddress,
 	})
 
 	// Periodic state check
