@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { BaseError, ContractFunctionRevertedError } from 'viem'
 
@@ -13,10 +13,10 @@ import { useProposalContext } from './hooks/useProposalContext'
 
 function ActionButtons() {
 	const [displayValue, setDisplayValue] = useState(null)
-	const [showValueInButton, setShowValueInButton] = useState(false)	
+	const [showValueInButton, setShowValueInButton] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
 	const [isClaimLoading, setIsClaimLoading] = useState(false)
-	const [isDelegating, setIsDelegating] = useState(false)	
+	const [isDelegating, setIsDelegating] = useState(false)
 	const [showProposalForm, setShowProposalForm] = useState(false)
 	const [showProposalList, setShowProposalList] = useState(false)
 	const [hasClaimedTokens, setHasClaimedTokens] = useState(false)
@@ -24,13 +24,15 @@ function ActionButtons() {
 	const [isCanceling, setIsCanceling] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [showError, setShowError] = useState(false)
+	const [showCancelTooltip, setShowCancelTooltip] = useState(false)
+	const [cancelTooltipText, setCancelTooltipText] = useState('')
 
 	const { address } = useAccount()
 	const { proposals, errors, governorAddress, tokenAddress, boxAddress } = useProposalContext()
-	
+
 
 	// Get the latest proposal, assuming proposals are sorted by block number
-	const latestProposal = proposals.length > 0 ? proposals[0] : null	
+	const latestProposal = proposals.length > 0 ? proposals[0] : null
 
 	// Contract reads
 	const { data, refetch } = useReadContract({
@@ -96,7 +98,6 @@ function ActionButtons() {
 	const combinedClaimLoading = isClaimLoading || isPending || isTxLoading
 	const combinedDelegateLoading = isDelegating || isDelegatePending || isDelegateTxLoading
 	const combinedCancelLoading = isCanceling || isCancelPending || isCancelTxLoading
-
 
 	// Handle errors from contract interactions
 	useEffect(() => {
@@ -256,7 +257,7 @@ function ActionButtons() {
 			setErrorMessage('')
 			setShowError(false)
 
-			
+
 			writeContract({
 				address: tokenAddress,
 				abi: GovernanceToken.abi,
@@ -368,9 +369,45 @@ function ActionButtons() {
 		setShowProposalList(!showProposalList)
 	}
 
+	const proposalStateNames = useMemo(() => ({
+		0: 'Pending',
+		1: 'Active',
+		2: 'Canceled',
+		3: 'Defeated',
+		4: 'Succeeded',
+		5: 'Queued',
+		6: 'Expired',
+		7: 'Executed'
+	}), [])
+
+	// Effect to set the tooltip text for the cancel button
+	useEffect(() => {
+		if (!canCancelProposal) {
+			if (!latestProposal) {
+				setCancelTooltipText('No proposal available to cancel.')
+			} else if (latestProposal.state !== 0) { // Ensure it must be Pending (state 0)
+				const stateName = proposalStateNames[latestProposal.state] || `State ${latestProposal.state}`
+				setCancelTooltipText(`Proposal cannot be canceled (Status: ${stateName}). Must be Pending.`)
+			} else {
+				// This case might occur if other conditions disable it, though primarily it's state check
+				setCancelTooltipText('Cancellation not possible currently.')
+			}
+		} else if (combinedCancelLoading) { // Use the combined loading state
+			setCancelTooltipText('Cancellation transaction in progress...')
+		}
+		else {
+			// Default text when cancellation is possible and not loading
+			setCancelTooltipText('Cancel the latest pending proposal.')
+		}
+		// Add latestProposal and combinedCancelLoading as dependencies
+	}, [canCancelProposal, latestProposal, combinedCancelLoading, proposalStateNames])
+
+	console.log(`cancelTooltipText: ${cancelTooltipText}`)
+	console.log(`showCancelTooltip: ${showCancelTooltip}`)
+
 	return (
 		<>
-			<div className="flex flex-col items-center w-full">			
+			<div className="flex flex-col items-center w-full">
 				{/* Transaction Error Alert */}
 				{showError && (
 					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded relative w-full max-w-lg">
@@ -417,7 +454,7 @@ function ActionButtons() {
 						onClick={delegateVotingPower}
 						disabled={combinedDelegateLoading || hasVotingPower || !hasClaimedTokens}
 						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasVotingPower ? 'bg-gray-500 cursor-not-allowed' : !hasClaimedTokens ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
-              disabled:opacity-60 disabled:cursor-not-allowed`}					
+              disabled:opacity-60 disabled:cursor-not-allowed`}
 					>
 						{delegateButtonText}
 					</button>
@@ -426,19 +463,36 @@ function ActionButtons() {
 						onClick={handlePropose}
 						disabled={!canPropose}
 						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${canPropose ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 cursor-not-allowed'}
-              disabled:opacity-60 disabled:cursor-not-allowed`}								
+              disabled:opacity-60 disabled:cursor-not-allowed`}
 					>
 						PROPOSE
 					</button>
-					<button
-						onClick={handleCancelProposal}
-						disabled={!canCancelProposal || combinedCancelLoading}
-						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${canCancelProposal ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 cursor-not-allowed'}
-              disabled:opacity-60 disabled:cursor-not-allowed`}
-						title={!canCancelProposal ? 'No pending proposal to cancel' : 'Cancel the latest pending proposal'}
-					>
-						{cancelButtonText}
-					</button>
+					{/* Wrapper for Cancel Button and Tooltip */}
+					<div className="relative inline-block"
+						// title attribute removed
+						onMouseEnter={() => setShowCancelTooltip(true)}
+						onMouseLeave={() => setShowCancelTooltip(false)}>
+						<button
+							onClick={handleCancelProposal}
+							disabled={!canCancelProposal || combinedCancelLoading}
+							className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${canCancelProposal
+								? 'bg-red-600 hover:bg-red-700'
+								: 'bg-gray-500 cursor-not-allowed'
+								} disabled:opacity-60 disabled:cursor-not-allowed`}
+
+						>
+							{cancelButtonText}
+						</button>
+
+						{/* Conditionally Rendered Tooltip */}
+						{showCancelTooltip && (
+							<div className="absolute z-10 w-58 p-2 mt-2 text-sm text-white bg-gray-800 rounded-md shadow-lg left-1/2 transform -translate-x-1/2 top-full"
+								role="tooltip"
+							>
+								<p>{cancelTooltipText}</p>
+							</div>
+						)}
+					</div>
 					<button
 						onClick={toggleProposalList}
 						className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out"
