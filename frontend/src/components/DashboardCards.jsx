@@ -36,21 +36,27 @@ function DashboardCards() {
           </div>
         ) : (
           <>
-            <div className="bg-white shadow rounded-lg p-4 flex-1">
-              <h2 className="text-xl font-bold text-black">PROPOSALS</h2>
-              <p className="text-gray-700">{totalProposals} Total proposals</p>
-              <p className="text-gray-500">PARTICIPATE AND PROPOSE NOW</p>
+              <div className="bg-gradient-to-b from-indigo-400 to-violet-500 shadow rounded-lg p-4 flex-1">
+                <h2 className="text-xl font-bold text-white">PROPOSALS</h2>
+                <p className="text-white">{totalProposals} Total proposals</p>
+                <p className="text-indigo-100 text-sm">PARTICIPATE AND PROPOSE NOW</p>
             </div>
-            <div className="bg-white shadow rounded-lg p-4 flex-1">
-              <h2 className="text-xl font-bold text-black">ELIGIBLE VOTERS</h2>
-              <p className="text-gray-700">{eligibleVoters} Total Voters</p>
-              <p className="text-gray-500">JOIN THE DAO NOW AND BECOME ONE</p>
+            <div className="bg-gradient-to-b from-indigo-400 to-violet-500 shadow rounded-lg p-4 flex-1">
+              <h2 className="text-xl font-bold text-white">ELIGIBLE VOTERS</h2>
+              <p className="text-white">{eligibleVoters} Total Voters</p>
+              <p className="text-indigo-100 text-sm">
+                JOIN THE DAO NOW AND BECOME ONE
+              </p>
             </div>
-            <div className="bg-white shadow rounded-lg p-4 flex-1">
-              <h2 className="text-xl font-bold text-black">YOUR VOTING POWER</h2>
-              <p className="text-3xl font-bold text-black">{formatVotingPower(votingPower)}</p>
-              <p className="text-gray-500">BASED ON YOUR TOKEN BALANCE</p>
-            </div>
+              <div className="bg-gradient-to-b from-indigo-400 to-violet-500 shadow rounded-lg p-4 flex-1">
+                <h2 className="text-xl font-bold text-white">YOUR VOTING POWER</h2>
+                <p className="text-3xl font-bold text-white">
+                  {formatVotingPower(votingPower)}
+                </p>
+                <p className="text-indigo-100 text-sm">
+                  BASED ON YOUR TOKEN BALANCE
+                </p>
+              </div>
           </>
         )
       )

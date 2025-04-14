@@ -1,6 +1,6 @@
 function HeaderBanner() {
 	return (
-		<div className="bg-gradient-to-b from-teal-400 to-blue-500 rounded-lg p-6 text-white text-center">
+		<div className="bg-gradient-to-b from-indigo-500 to-violet-600 rounded-lg p-6 text-white text-center">
 			<p className="text-lg mb-4">
 				Shape the future of our decentralized community. Join our DAO and have a say in our collective decision-making process. Participate in discussions, propose new ideas, and cast your vote on important issues.
 			</p>

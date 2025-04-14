@@ -92,6 +92,12 @@ function ActionButtons() {
 			enabled: !!cancelTxHash,
 		})
 
+	// Combined Loading States
+	const combinedClaimLoading = isClaimLoading || isPending || isTxLoading
+	const combinedDelegateLoading = isDelegating || isDelegatePending || isDelegateTxLoading
+	const combinedCancelLoading = isCanceling || isCancelPending || isCancelTxLoading
+
+
 	// Handle errors from contract interactions
 	useEffect(() => {
 		// Clear error when starting new transaction
@@ -348,11 +354,11 @@ function ActionButtons() {
 		(showValueInButton && displayValue !== null) ?
 			`Value: ${displayValue}` : 'CURRENT VALUE'
 
-	const fundButtonText = isClaimLoading || isPending || isTxLoading ?
+	const fundButtonText = combinedClaimLoading ?
 		'CLAIMING...' : hasClaimedTokens ? 'ALREADY CLAIMED' : 'GET FUNDS'
-	const delegateButtonText = isDelegating || isDelegatePending || isDelegateTxLoading ?
+	const delegateButtonText = combinedDelegateLoading ?
 		'DELEGATING...' : hasVotingPower ? 'VOTING POWER ACTIVE' : 'ACTIVATE VOTING'
-	const cancelButtonText = isCanceling || isCancelPending || isCancelTxLoading ?
+	const cancelButtonText = combinedCancelLoading ?
 		'CANCELING...' : 'CANCEL PROPOSAL'
 
 	// Determine if the cancel button should be enabled
@@ -391,25 +397,27 @@ function ActionButtons() {
 				)}
 
 				{/* Action Buttons */}
-				<div className="bg-blue-500 p-4 mt-2 flex flex-wrap justify-center space-x-4 rounded-lg">
+				<div className="bg-gradient-to-b from-slate-100 to-slate-300 p-4 mt-2 flex flex-wrap justify-center items-center gap-4 rounded-lg shadow-md w-full max-w-4xl">
 					<button
 						onClick={handleGetCurrentValue}
 						disabled={isLoading}
-						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow disabled:opacity-50"
+						className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
 					>
 						{valueButtonText}
 					</button>
 					<button
 						onClick={handleGetFunds}
-						disabled={isClaimLoading || isPending || isTxLoading || hasClaimedTokens}
-						className={`${hasClaimedTokens ? 'bg-gray-500' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
+						disabled={combinedClaimLoading || hasClaimedTokens}
+						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasClaimedTokens ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
+              disabled:opacity-60 disabled:cursor-not-allowed`}
 					>
 						{fundButtonText}
 					</button>
 					<button
 						onClick={delegateVotingPower}
-						disabled={isDelegating || isDelegatePending || isDelegateTxLoading || hasVotingPower || !hasClaimedTokens}
-						className={`${hasVotingPower ? 'bg-gray-500' : !hasClaimedTokens ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
+						disabled={combinedDelegateLoading || hasVotingPower || !hasClaimedTokens}
+						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasVotingPower ? 'bg-gray-500 cursor-not-allowed' : !hasClaimedTokens ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
+              disabled:opacity-60 disabled:cursor-not-allowed`}					
 					>
 						{delegateButtonText}
 					</button>
@@ -417,22 +425,23 @@ function ActionButtons() {
 					<button
 						onClick={handlePropose}
 						disabled={!canPropose}
-						className={`${canPropose ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
-						title={!canPropose ? 'A proposal is already in progress' : ''}
+						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${canPropose ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 cursor-not-allowed'}
+              disabled:opacity-60 disabled:cursor-not-allowed`}								
 					>
 						PROPOSE
 					</button>
 					<button
 						onClick={handleCancelProposal}
-						disabled={!canCancelProposal || isCanceling || isCancelPending || isCancelTxLoading}
-						className={`${canCancelProposal ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500'} text-white px-4 py-2 rounded shadow disabled:opacity-50`}
-						title={!canCancelProposal ? 'No pending proposal to cancel' : ''}
+						disabled={!canCancelProposal || combinedCancelLoading}
+						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${canCancelProposal ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-500 cursor-not-allowed'}
+              disabled:opacity-60 disabled:cursor-not-allowed`}
+						title={!canCancelProposal ? 'No pending proposal to cancel' : 'Cancel the latest pending proposal'}
 					>
 						{cancelButtonText}
 					</button>
 					<button
 						onClick={toggleProposalList}
-						className="bg-purple-500 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-200"
+						className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out"
 					>
 						{showProposalList ? 'Hide Proposals' : 'View Proposals'}
 					</button>
