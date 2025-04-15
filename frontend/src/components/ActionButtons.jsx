@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi'
 import { BaseError, ContractFunctionRevertedError } from 'viem'
@@ -71,7 +70,7 @@ function ActionButtons() {
 	}, [hasClaimedData, votingPowerData])
 
 	// Contract writes with error handling
-	const { writeContract, data: claimTxHash, isPending, error: writeError } = useWriteContract()
+	const { writeContract: writeClaim, data: claimTxHash, isPending, error: writeError } = useWriteContract()
 	const { writeContract: writeDelegation, data: delegateTxHash, isPending: isDelegatePending, error: delegateError } = useWriteContract()
 	const { writeContract: cancelProposal, data: cancelTxHash, isPending: isCancelPending, error: cancelError } = useWriteContract()
 
@@ -228,7 +227,8 @@ function ActionButtons() {
 
 		try {
 			setIsDelegating(true)
-			clearError('actionButtons')
+			setErrorMessage('')
+			setShowError(false)					
 
 			writeDelegation({
 				address: tokenAddress,
@@ -258,7 +258,7 @@ function ActionButtons() {
 			setShowError(false)
 
 
-			writeContract({
+			writeClaim({
 				address: tokenAddress,
 				abi: GovernanceToken.abi,
 				functionName: 'claimTokens',
@@ -402,8 +402,8 @@ function ActionButtons() {
 		// Add latestProposal and combinedCancelLoading as dependencies
 	}, [canCancelProposal, latestProposal, combinedCancelLoading, proposalStateNames])
 
-	console.log(`cancelTooltipText: ${cancelTooltipText}`)
-	console.log(`showCancelTooltip: ${showCancelTooltip}`)
+	//console.log(`cancelTooltipText: ${cancelTooltipText}`)
+	//console.log(`showCancelTooltip: ${showCancelTooltip}`)
 
 	return (
 		<>

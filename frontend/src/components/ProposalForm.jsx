@@ -20,7 +20,7 @@ function ProposalForm({ onClose, onSuccess }) {
   // Get contract addresses from addresses.json based on connected network
   const { writeContract, data: proposeTxHash } = useWriteContract()
 
-  console.log(`proposeTxHash: ${proposeTxHash}`)
+  //console.log(`proposeTxHash: ${proposeTxHash}`)
 
   // Track transaction status
   const { isLoading: isTxLoading, isSuccess: isTxSuccess, data: txReceiptData } =

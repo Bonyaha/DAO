@@ -10,7 +10,7 @@ function DashboardCards() {
     isConnected
   } = useProposalContext()
 
-  //console.log(`votingPower: ${votingPower}`)
+  console.log(`votingPower: ${votingPower}`)
 
   // Helper function to format voting power consistently
   const formatVotingPower = (power) => {
