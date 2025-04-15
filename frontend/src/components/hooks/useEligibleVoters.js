@@ -49,6 +49,8 @@ export function useEligibleVoters({ tokenAddress }) {
 				console.warn('TokenTransfer: Received invalid logs:', logs)
 				return
 			}
+console.log('Event name is: TokenTransfer');
+
 			refetchTokenHolders()
 		},
 		enabled: !!tokenAddress,		

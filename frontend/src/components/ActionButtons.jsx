@@ -27,7 +27,7 @@ function ActionButtons() {
 	const [cancelTooltipText, setCancelTooltipText] = useState('')
 
 	const { address } = useAccount()
-	const { proposals, errors, governorAddress, tokenAddress, boxAddress } = useProposalContext()
+	const { proposals, errors, governorAddress, tokenAddress, boxAddress,	refetchVotingPower } = useProposalContext()
 
 
 	// Get the latest proposal, assuming proposals are sorted by block number
@@ -228,7 +228,7 @@ function ActionButtons() {
 		try {
 			setIsDelegating(true)
 			setErrorMessage('')
-			setShowError(false)					
+			setShowError(false)
 
 			writeDelegation({
 				address: tokenAddress,
@@ -330,18 +330,21 @@ function ActionButtons() {
 			setHasClaimedTokens(true)
 			// Prompt to add token to MetaMask after successful claim
 			addTokenToMetamask()
+			//refetchVotingPower?.()
 			// Automatically trigger delegation after successful claim
 			delegateVotingPower()
+			
 		}
-	}, [isTxSuccess, addTokenToMetamask, delegateVotingPower])
+	}, [isTxSuccess, addTokenToMetamask, delegateVotingPower, refetchVotingPower])
 
 	// Effect to handle successful delegation
 	useEffect(() => {
 		if (isDelegateTxSuccess) {
 			setIsDelegating(false)
 			setHasVotingPower(true)
+			refetchVotingPower?.()
 		}
-	}, [isDelegateTxSuccess])
+	}, [isDelegateTxSuccess, refetchVotingPower])
 
 	// Effect to handle successful cancel
 	useEffect(() => {

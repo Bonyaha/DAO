@@ -31,7 +31,7 @@ export function ProposalProvider({ children }) {
 	const { currentTime, currentBlock, blockTime, timingError } = useTiming({ publicClient, chain })
 
 	// Use voting power hook
-	const { votingPower } = useVotingPower({ tokenAddress, address })
+	const { votingPower, refetchVotingPower } = useVotingPower({ tokenAddress, address })
 
 	// Use proposals hook
 	const { proposals, totalProposals, isLoading, fetchProposals, hasUserVoted, proposalError } = useProposals({
@@ -53,7 +53,7 @@ export function ProposalProvider({ children }) {
 		proposals,
 		totalProposals,
 		governorAddress,
-		tokenAddress, // Add tokenAddress to context
+		tokenAddress,
 		boxAddress,
 		votingPower,
 		eligibleVoters,
@@ -64,6 +64,7 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
+		refetchVotingPower,
 		isConnected,
 		errors: {
 			proposals: proposalError,
@@ -74,7 +75,7 @@ export function ProposalProvider({ children }) {
 		proposals,
 		totalProposals,
 		governorAddress,
-		tokenAddress, // Add tokenAddress to context
+		tokenAddress,
 		boxAddress,
 		votingPower,
 		eligibleVoters,
@@ -85,6 +86,7 @@ export function ProposalProvider({ children }) {
 		canExecuteProposal,
 		blockTime,
 		fetchProposals,
+		refetchVotingPower,
 		isConnected,
 		proposalError, timingError
 		
