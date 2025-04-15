@@ -43,7 +43,7 @@ export function ProposalProvider({ children }) {
 	})
 
 	// Use eligible voters hook
-	const { eligibleVoters } = useEligibleVoters({ tokenAddress })
+	const { eligibleVoters, refetchEligibleVoters } = useEligibleVoters({ tokenAddress })
 
 	const canExecuteProposal = useCallback((eta) => {
 		return eta > 0 && currentTime >= eta
@@ -65,6 +65,7 @@ export function ProposalProvider({ children }) {
 		blockTime,
 		fetchProposals,
 		refetchVotingPower,
+		refetchEligibleVoters,
 		isConnected,
 		errors: {
 			proposals: proposalError,
@@ -87,6 +88,7 @@ export function ProposalProvider({ children }) {
 		blockTime,
 		fetchProposals,
 		refetchVotingPower,
+		refetchEligibleVoters,
 		isConnected,
 		proposalError, timingError
 		

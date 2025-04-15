@@ -27,7 +27,7 @@ function ActionButtons() {
 	const [cancelTooltipText, setCancelTooltipText] = useState('')
 
 	const { address } = useAccount()
-	const { proposals, errors, governorAddress, tokenAddress, boxAddress,	refetchVotingPower } = useProposalContext()
+	const { proposals, errors, governorAddress, tokenAddress, boxAddress, refetchVotingPower, refetchEligibleVoters } = useProposalContext()
 
 
 	// Get the latest proposal, assuming proposals are sorted by block number
@@ -42,7 +42,7 @@ function ActionButtons() {
 	})
 
 	// Check if the user has already claimed tokens
-	const { data: hasClaimedData } = useReadContract({
+	const { data: hasClaimedData, refetch: refetchClaimedData } = useReadContract({
 		address: tokenAddress,
 		abi: GovernanceToken.abi,
 		functionName: 's_claimedTokens',
@@ -224,6 +224,7 @@ function ActionButtons() {
 			setShowError(true)
 			return
 		}
+console.log('in delegateVotingPower');
 
 		try {
 			setIsDelegating(true)
@@ -332,10 +333,12 @@ function ActionButtons() {
 			addTokenToMetamask()
 			//refetchVotingPower?.()
 			// Automatically trigger delegation after successful claim
-			delegateVotingPower()
+			//delegateVotingPower()
+			refetchClaimedData()
+			refetchEligibleVoters?.()
 			
 		}
-	}, [isTxSuccess, addTokenToMetamask, delegateVotingPower, refetchVotingPower])
+	}, [isTxSuccess, addTokenToMetamask, delegateVotingPower, refetchClaimedData, refetchEligibleVoters])
 
 	// Effect to handle successful delegation
 	useEffect(() => {
@@ -343,6 +346,7 @@ function ActionButtons() {
 			setIsDelegating(false)
 			setHasVotingPower(true)
 			refetchVotingPower?.()
+
 		}
 	}, [isDelegateTxSuccess, refetchVotingPower])
 
@@ -406,7 +410,7 @@ function ActionButtons() {
 	}, [canCancelProposal, latestProposal, combinedCancelLoading, proposalStateNames])
 
 	//console.log(`cancelTooltipText: ${cancelTooltipText}`)
-	//console.log(`showCancelTooltip: ${showCancelTooltip}`)
+	console.log(`hasClaimedData: ${hasClaimedData}`)
 
 	return (
 		<>

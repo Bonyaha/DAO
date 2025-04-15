@@ -98,5 +98,5 @@ console.log('Event name is: TokenTransfer');
 		enabled: !!tokenAddress,		
 	})
 
-	return { eligibleVoters }
+	return { eligibleVoters,refetchEligibleVoters: refetch }
 }
