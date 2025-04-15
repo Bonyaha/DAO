@@ -160,14 +160,3 @@ main()
 		console.error(error)
 		process.exit(1)
 	})
-
-/* ,
-    "timelock": {
-      "address": "0x44C493AEe3f2a76a67eb5Fb3c24035DAb4940189",
-      "constructorArgs": [
-        3600,
-        [],
-        [],
-        "0x9652f953a1b67E0Af4b5Daf77C6bAF10948E2932"
-      ]
-    }, */
