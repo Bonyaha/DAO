@@ -107,6 +107,17 @@ describe("DAO", function () {
         governanceToken.connect(addr1).claimTokens()
       ).to.be.revertedWith("Already claimed tokens")
     })
+    it("Should prevent deployer from claiming tokens", async function () {
+      const { governanceToken, owner } = await loadFixture(deployDAOFixture)
+
+      // Verify deployer is marked as having claimed tokens
+      expect(await governanceToken.s_claimedTokens(owner.address)).to.be.true
+
+      // Attempt to claim tokens as deployer should fail
+      await expect(
+        governanceToken.connect(owner).claimTokens()
+      ).to.be.revertedWith("Already claimed tokens")
+    })
   })
 
   describe("Box", function () {
@@ -119,12 +130,61 @@ describe("DAO", function () {
     })
 
     it("Should emit event when value is stored", async function () {
-      const { box, timelock } = await loadFixture(deployDAOFixture)
+      const { box, governor, governanceToken, addr1, addr2, addr3, addr4, addr5 } = await loadFixture(deployDAOFixture)
+      const voters = [addr1, addr2, addr3, addr4, addr5]
 
-      // Note: We can't test storing values directly since timelock is the owner
-      // This would need to be tested through governance proposals
-      expect(await box.retrieve()).to.equal(0)
+      // Setup voters: claim tokens and delegate
+      for (const voter of voters) {
+        await governanceToken.connect(voter).claimTokens()
+        await governanceToken.connect(voter).delegate(voter.address)
+        await network.provider.send("evm_mine") // Mine a block to ensure delegation is checkpointed
+      }
+
+      // Create proposal to store 42
+      const encodedFunctionCall = box.interface.encodeFunctionData("store", [42])
+      const proposalDescription = "Store 42 in Box"
+      const proposeTx = await governor
+        .connect(addr1)
+        .propose([box.target], [0], [encodedFunctionCall], proposalDescription)
+      const proposeReceipt = await proposeTx.wait(1)
+      const proposalId = proposeReceipt.logs[0].args[0]
+
+      // Wait for voting delay (1 block)
+      await network.provider.send("evm_mine")
+
+      // Cast votes
+      for (const voter of voters) {
+        await governor.connect(voter).castVote(proposalId, 1) // Vote "For"
+        await network.provider.send("evm_mine")
+      }
+
+      // Advance blocks to pass voting period (50 blocks)
+      const proposalDeadline = await governor.proposalDeadline(proposalId)
+      const currentBlock = await ethers.provider.getBlockNumber()
+      const blocksToMine = Number(proposalDeadline) - currentBlock + 1
+      for (let i = 0; i < blocksToMine; i++) {
+        await network.provider.send("evm_mine")
+      }
+
+      // Queue the proposal
+      const descriptionHash = keccak256(toUtf8Bytes(proposalDescription))
+      await governor.queue([box.target], [0], [encodedFunctionCall], descriptionHash)
+
+      // Wait for timelock delay (3600 seconds)
+      await time.increase(3601)
+      await network.provider.send("evm_mine")
+
+      // Execute the proposal and check for ValueChanged event
+      await expect(
+        governor.execute([box.target], [0], [encodedFunctionCall], descriptionHash)
+      )
+        .to.emit(box, "ValueChanged")
+        .withArgs(42)
+
+      // Verify the stored value
+      expect(await box.retrieve()).to.equal(42)
     })
+ 
   })
 
   describe("Governance", function () {
