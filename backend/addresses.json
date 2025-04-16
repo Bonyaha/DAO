@@ -32,21 +32,21 @@
   },
   "sepolia": {
     "governor": {
-      "address": "0x0738eaa8a12D579a847CB6F75b53FEd98d0c6701",
+      "address": "0xfaaFfd91071E1F97fc669c9aA815972F224d10bF",
       "constructorArgs": [
-        "0x724f920C13aBf77d628a87FC1253969C42e59d49",
-        "0x1AFAf0b6a922A4F5f736E12EA67c301031d507Ee"
+        "0xfDc316600193DdfA09a906d592f5a45dD37e90aC",
+        "0x983C18ea2B6Cc139E2d1E1d93ba4892E0576C0D4"
       ]
     },
     "box": {
-      "address": "0xA67765a5ddC494D40403D45d796AF0D8e7672179",
+      "address": "0xaE3719980D24BCED036CB26744d7aC74e4D8D57b",
       "constructorArgs": []
     },
     "governanceToken": {
-      "address": "0x724f920C13aBf77d628a87FC1253969C42e59d49"
+      "address": "0xfDc316600193DdfA09a906d592f5a45dD37e90aC"
     },
     "timelock": {
-      "address": "0x1AFAf0b6a922A4F5f736E12EA67c301031d507Ee",
+      "address": "0x983C18ea2B6Cc139E2d1E1d93ba4892E0576C0D4",
       "constructorArgs": [
         3600,
         [],

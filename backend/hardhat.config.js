@@ -41,6 +41,9 @@ module.exports = {
   },
   paths: {
     artifacts: "../frontend/src/artifacts"
+  },
+  sourcify: {
+    enabled: true
   }
 };
 
