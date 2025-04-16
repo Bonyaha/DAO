@@ -39,12 +39,20 @@ Deployed Contracts in local network:
 /*(for running locally)*/
 - `npx hardhat node` (in separate window)
 - `npx hardhat run scripts/<name_of_file> --network localhost`
+- `npx hardhat run scripts/checkProposalState.js --network localhost` - useful for checking state and other details of a proposal (it can be used in Sepolia as well)
 
 ### Command for testing
 - `npx hardhat test`
 - `npx hardhat test --grep <name_of_file>` (for testing one specific test)
 
-Hardhat accounts:
+### Flow of scripts
+- deploy.js
+- proposal.js
+- vote.js
+- queueAndExecute.js
+
+
+### Hardhat accounts:
 Account #1: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (10000 ETH)
 Private Key: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
