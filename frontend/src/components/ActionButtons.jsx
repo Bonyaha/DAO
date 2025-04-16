@@ -441,11 +441,12 @@ console.log('in delegateVotingPower');
 				)}
 
 				{/* Action Buttons */}
-				<div className="bg-gradient-to-b from-slate-100 to-slate-300 p-4 mt-2 flex flex-wrap justify-center items-center gap-4 rounded-lg shadow-md w-full max-w-4xl">
+				<div className="bg-gradient-to-b from-slate-100 to-slate-300 p-4 mt-2 flex flex-col justify-center items-center gap-4 rounded-lg shadow-md w-full max-w-4xl">
+					<div className="flex justify-center items-center gap-4 overflow-x-auto">
 					<button
 						onClick={handleGetCurrentValue}
 						disabled={isLoading}
-						className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+							className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
 					>
 						{valueButtonText}
 					</button>
@@ -453,7 +454,7 @@ console.log('in delegateVotingPower');
 						onClick={handleGetFunds}
 						disabled={combinedClaimLoading || hasClaimedTokens}
 						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasClaimedTokens ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
-              disabled:opacity-60 disabled:cursor-not-allowed`}
+              disabled:opacity-60 disabled:cursor-not-allowed shrink-0`}
 					>
 						{fundButtonText}
 					</button>
@@ -461,7 +462,7 @@ console.log('in delegateVotingPower');
 						onClick={delegateVotingPower}
 						disabled={combinedDelegateLoading || hasVotingPower || !hasClaimedTokens}
 						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasVotingPower ? 'bg-gray-500 cursor-not-allowed' : !hasClaimedTokens ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
-              disabled:opacity-60 disabled:cursor-not-allowed`}
+              disabled:opacity-60 disabled:cursor-not-allowed shrink-0`}
 					>
 						{delegateButtonText}
 					</button>
@@ -470,12 +471,12 @@ console.log('in delegateVotingPower');
 						onClick={handlePropose}
 						disabled={!canPropose}
 						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${canPropose ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 cursor-not-allowed'}
-              disabled:opacity-60 disabled:cursor-not-allowed`}
+              disabled:opacity-60 disabled:cursor-not-allowed shrink-0`}
 					>
 						PROPOSE
 					</button>
 					{/* Wrapper for Cancel Button and Tooltip */}
-					<div className="relative inline-block"
+						<div className="relative inline-block shrink-0"
 						// title attribute removed
 						onMouseEnter={() => setShowCancelTooltip(true)}
 						onMouseLeave={() => setShowCancelTooltip(false)}>
@@ -500,13 +501,15 @@ console.log('in delegateVotingPower');
 							</div>
 						)}
 					</div>
+					</div>
+					<div className="flex justify-center items-center">
 					<button
 						onClick={toggleProposalList}
 						className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out"
 					>
 						{showProposalList ? 'Hide Proposals' : 'View Proposals'}
 					</button>
-
+					</div>
 					{/* Proposal Form Modal */}
 					{showProposalForm && (
 						<ProposalForm
