@@ -1,126 +1,226 @@
 const { ethers } = require("hardhat")
-const {addresses} = require("../addresses")
+const { addresses } = require("../addresses")
 
-/* create checking for repeating voting */
+/**
+ * Cast a vote on a governance proposal
+ * @param {Object} options - Voting options
+ * @param {number} options.voteWay - How to vote: 0=Against, 1=For, 2=Abstain
+ * @param {string} options.network - Network to use (defaults to hardhat network name)
+ * @param {string} options.voterAddress - Specific voter address (optional, for frontend use)
+ * @param {string} options.proposalId - Optional override for proposal ID
+ * @returns {Promise<Object>} Result of voting operation
+ */
+async function castVote(options = {}) {
+	// Default vote is "For" (1)
+	const voteWay = options.voteWay ?? 1
 
-async function main() {
-// Get network information
-	const networkName = network.name
-	const isLocalNetwork = ['localhost', 'hardhat'].includes(networkName)
+	// Get network information
+	const networkName = options.network || network.name
+	const isLocalNetwork = ["localhost", "hardhat"].includes(networkName)
 	console.log(`Running on network: ${networkName}`)
 
-//console.log(addresses)
-	const config = addresses[network.name]
-	//console.log(config)
-	const GOVERNOR_ADDRESS = config.governor.address
-	const TOKEN_ADDRESS = config.governanceToken.address	
-	const PROPOSAL_ID = config.proposalId.id
-
-	//console.log(`Using governor address: ${GOVERNOR_ADDRESS}`)
-	
-
-	const proposalId = PROPOSAL_ID
-	if (!proposalId) {
-		throw new Error("Please set PROPOSAL_ID environment variable")
+	// Get contract addresses from config
+	const config = addresses[networkName]
+	if (!config) {
+		throw new Error(`Network configuration not found for ${networkName}`)
 	}
 
-	console.log("Current block:", await ethers.provider.getBlockNumber());
+	const GOVERNOR_ADDRESS = config.governor.address
+	const TOKEN_ADDRESS = config.governanceToken.address
+	const PROPOSAL_ID = options.proposalId || config.proposalId.id
 
+	if (!PROPOSAL_ID) {
+		throw new Error("Proposal ID not found in config")
+	}
+
+	// Get contract instances
+	const provider = ethers.provider
 	const governor = await ethers.getContractAt("MyGovernor", GOVERNOR_ADDRESS)
-const governanceToken = await ethers.getContractAt("GovernanceToken", TOKEN_ADDRESS)
+	const governanceToken = await ethers.getContractAt("GovernanceToken", TOKEN_ADDRESS)
 
-	// Check proposal state first
-	let state = await governor.state(proposalId)
-	const states = ['Pending', 'Active', 'Canceled', 'Defeated', 'Succeeded', 'Queued', 'Expired', 'Executed']
-	console.log(`Current proposal state: ${states[state]}`);
+	// Validate vote type
+	if (![0, 1, 2].includes(voteWay)) {
+		throw new Error("Invalid vote way. Must be 0 (Against), 1 (For), or 2 (Abstain).")
+	}
 
-		
+	// Check proposal state
+	let state = await governor.state(PROPOSAL_ID)
+	const states = ["Pending", "Active", "Canceled", "Defeated", "Succeeded", "Queued", "Expired", "Executed"]
+	console.log(`Current proposal state: ${states[state]}`)
 
-	// If it's still Pending, handle voting delay based on network
+	// Handle voting delay if Pending
 	if (state == 0) { // 0 = Pending
-		const currentBlock = BigInt(await ethers.provider.getBlockNumber())
-		const votingStarts = await governor.proposalSnapshot(proposalId)
-		const proposalEta = await governor.proposalEta(proposalId) //timestamp when the proposal can be executed
-		const latestBlock = await ethers.provider.getBlock('latest')
+		const currentBlock = BigInt(await provider.getBlockNumber())
+		const votingStarts = await governor.proposalSnapshot(PROPOSAL_ID)
+		const proposalEta = await governor.proposalEta(PROPOSAL_ID)
+		const latestBlock = await provider.getBlock("latest")
 		const currentTimestamp = BigInt(latestBlock.timestamp)
-		console.log(`Current block: ${currentBlock}`)
-		console.log(`Voting starts at block: ${votingStarts}`)
 
 		if (currentBlock <= votingStarts) {
 			const waitTime = Number(proposalEta - currentTimestamp)
 			const blocksToWait = Number(votingStarts - currentBlock + 1n)
-			console.log(`Need to wait for ${blocksToWait} blocks`)
 
 			if (isLocalNetwork) {
-				console.log("Mining blocks on local network...")
+				console.log(`Mining ${blocksToWait} blocks on local network...`)
 				for (let i = 0; i < blocksToWait; i++) {
 					await network.provider.send("evm_mine")
-					if (i % 5 === 0) { // Log progress every 5 blocks
-						console.log(`Mined block ${i + 1} of ${blocksToWait}`)
-					}
 				}
+				console.log("Mining complete.")
 			} else {
-				console.log(`Voting delay not yet complete on ${networkName}.`)
-				console.log(`Please rerun this script after block ${votingStarts} is reached.`)
-				const minutes = Math.ceil(waitTime / 60)  // Total minutes, rounded up
-				const hours = Math.floor(waitTime / 3600) // Full hours
-				const remainingMinutes = Math.ceil((waitTime % 3600) / 60) // Minutes after full hours
-
-				if (hours >= 1) {
-					console.log(`That's approximately ${hours} hours and ${remainingMinutes} minutes.`)
-				} else {
-					console.log(`That's approximately ${minutes} minutes.`)
+				// For non-local networks, just return information about when voting will start
+				const estimatedTime = new Date(Number(proposalEta) * 1000).toLocaleString()
+				return {
+					success: false,
+					status: "pending",
+					message: "Voting period has not started yet",
+					votingStartsAtBlock: votingStarts.toString(),
+					estimatedStartTime: estimatedTime,
+					blocksToWait: blocksToWait
 				}
-				console.log(`Please run this script again at or after: ${new Date(Number(proposalEta) * 1000).toLocaleString()}`)
-				console.log(`Estimated wait time: ~${blocksToWait * 15} seconds (assuming 15s/block on Sepolia)`)
-				process.exit(0);
 			}
-			
-			// Re-check the proposal state
-			state = await governor.state(proposalId)
+
+			// Re-check proposal state after mining blocks
+			state = await governor.state(PROPOSAL_ID)
 			console.log(`New proposal state: ${states[state]}`)
 		}
 	}
 
-
+	// Ensure proposal is Active
 	if (state != 1) { // 1 = Active
-		console.log(`Cannot vote: Proposal is ${states[state]}`)
-		process.exit(0)
+		return {
+			success: false,
+			status: states[state].toLowerCase(),
+			message: `Cannot vote: Proposal is ${states[state]}`
+		}
 	}
 
-	// check voting eligibility
-	const [voter] = await ethers.getSigners()
-	console.log("Voting with account:", voter.address)
+	// Determine the voter to use
+	let voter
 
-	// Check if voter has voting power
-	const votes = await governanceToken.getVotes(voter.address)
-	if (votes === 0n) {
-		console.log("Error: Account has no voting power. Please delegate tokens first.")
-		process.exit(1)
+	if (options.voterAddress) {
+		// For frontend use - use the provided address with the provider's signer
+		if (options.signer) {
+			// If a signer is provided (from frontend)
+			voter = options.signer
+		} else {
+			// For testing with specific addresses
+			const signers = await ethers.getSigners()
+			voter = signers.find(s => s.address.toLowerCase() === options.voterAddress.toLowerCase())
+
+			if (!voter) {
+				throw new Error(`Voter address ${options.voterAddress} not found in available signers`)
+			}
+		}
+	} else {
+		// Default to first signer if no specific address provided
+		const signers = await ethers.getSigners()
+		voter = signers[0]
 	}
 
-	// Check if voter has already voted
-	const hasVoted = await governor.hasVoted(proposalId, voter.address)
-	if (hasVoted) {
-		console.log("Error: This account has already voted on this proposal.")
-		process.exit(1)
+	console.log(`Casting vote as: ${voter.address}`)
+
+	try {
+		// Check voting power
+		const votes = await governanceToken.getVotes(voter.address)
+		if (votes === 0n) {
+			return {
+				success: false,
+				voterAddress: voter.address,
+				message: "No voting power",
+				votePower: "0"
+			}
+		}
+
+		// Check if already voted
+		const hasVoted = await governor.hasVoted(PROPOSAL_ID, voter.address)
+		if (hasVoted) {
+			return {
+				success: false,
+				voterAddress: voter.address,
+				message: "Already voted on this proposal"
+			}
+		}
+
+		// Cast the vote
+		const voteTx = await governor.connect(voter).castVote(PROPOSAL_ID, voteWay)
+		const receipt = await voteTx.wait()
+
+		// Get updated vote counts
+		const { againstVotes, forVotes, abstainVotes } = await governor.proposalVotes(PROPOSAL_ID)
+
+		return {
+			success: true,
+			voterAddress: voter.address,
+			votePower: ethers.formatEther(votes),
+			voteType: voteWay === 0 ? "Against" : voteWay === 1 ? "For" : "Abstain",
+			txHash: voteTx.hash,
+			proposalId: PROPOSAL_ID,
+			currentVotes: {
+				for: forVotes.toString(),
+				against: againstVotes.toString(),
+				abstain: abstainVotes.toString()
+			}
+		}
+	} catch (error) {
+		return {
+			success: false,
+			voterAddress: voter.address,
+			message: error.message
+		}
 	}
-
-	console.log(`Account has ${ethers.formatEther(votes)} voting power.`);
-	// 0 = Against, 1 = For, 2 = Abstain
-	const votingWay = 1
-	const voteTx = await governor.castVote(proposalId, votingWay)
-	await voteTx.wait()
-
-	console.log(`Vote cast on proposal ${proposalId}`)
-
-	const { againstVotes, forVotes, abstainVotes } = await governor.proposalVotes(proposalId)
-	console.log(`Current votes - For: ${forVotes}, Against: ${againstVotes}, Abstain: ${abstainVotes}`)
 }
 
-main()
-	.then(() => process.exit(0))
-	.catch((error) => {
-		console.error(error)
-		process.exit(1)
-	})
+// Export for importing in other files (backend or frontend)
+module.exports = { castVote }
+
+// Main function for hardhat run - simple solution without arguments
+async function main() {
+	// Get VOTE_TYPE from environment if available
+	const voteType = process.env.VOTE_TYPE
+	let voteWay = 1 // Default to "For"
+
+	if (voteType === "against" || voteType === "0") {
+		voteWay = 0
+	} else if (voteType === "abstain" || voteType === "2") {
+		voteWay = 2
+	}
+
+	// Get VOTER_ADDRESS from environment if available
+	const voterAddress = process.env.VOTER_ADDRESS
+	console.log(`voterAddress is ${voterAddress}`)
+
+	console.log(`Voting: "${voteWay === 0 ? 'Against' : voteWay === 1 ? 'For' : 'Abstain'}" the proposal`)
+	if (voterAddress) {
+		console.log(`Using voter address: ${voterAddress}`)
+	}
+
+	try {
+		const options = {
+			voteWay,
+			...(voterAddress && { voterAddress }) // Only add voterAddress if it exists
+		}
+
+
+		const result = await castVote(options)
+		console.log("Result:", JSON.stringify(result, null, 2))
+
+		if (result.success) {
+			console.log(`Vote successfully cast as: ${result.voteType}`)
+			console.log(`Transaction hash: ${result.txHash}`)
+		} else {
+			console.log(`Failed to cast vote: ${result.message}`)
+		}
+	} catch (error) {
+		console.error("Error:", error.message)
+	}
+}
+
+// Run main function if script is executed directly
+if (require.main === module) {
+	main()
+		.then(() => process.exit(0))
+		.catch((error) => {
+			console.error(error)
+			process.exit(1)
+		})
+}
