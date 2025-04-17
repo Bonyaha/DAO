@@ -1,6 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox")
 require("hardhat-contract-sizer")
-require("dotenv").config();
+require("dotenv").config()
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
@@ -17,6 +17,12 @@ module.exports = {
     }
   },
   networks: {
+    hardhat: {
+      mining: {
+        auto: true,
+        interval: 1000 // Mine new block every second
+      }
+    },
     sepolia: {
       url: process.env.ALCHEMY_SEPOLIA_URL,
       accounts: [process.env.SEPOLIA_PRIVATE_KEY],
@@ -30,8 +36,14 @@ module.exports = {
     apiKey: process.env.ETHERSCAN_KEY
   },
   contractSizer: {
-    runOnCompile: true,  // Runs automatically when compiling
+    runOnCompile: false,  // Runs automatically when compiling
     only: ["MyGovernor"], // Specify contracts to measure (optional)
+  },
+  paths: {
+    artifacts: "../frontend/src/artifacts"
+  },
+  sourcify: {
+    enabled: true
   }
 };
 

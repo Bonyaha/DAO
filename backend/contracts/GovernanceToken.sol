@@ -26,6 +26,7 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes {
         super._mint(msg.sender, TOTAL_SUPPLY);
         _transfer(msg.sender, address(this), TOTAL_SUPPLY - keepAmount);
         s_holders.push(msg.sender);
+        s_claimedTokens[msg.sender] = true;
     }
 
     function claimTokens() external {
@@ -38,7 +39,6 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes {
     function getTokenHolders() external view returns (uint256) {
         return s_holders.length;
     }
-
 
     // The following functions are overrides required by Solidity.
 
@@ -65,5 +65,4 @@ contract GovernanceToken is ERC20, ERC20Permit, ERC20Votes {
     ) public view override(ERC20Permit, Nonces) returns (uint256) {
         return super.nonces(owner);
     }
-
 }

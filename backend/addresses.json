@@ -1,0 +1,64 @@
+{
+  "localhost": {
+    "governor": {
+      "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "constructorArgs": [
+        "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      ]
+    },
+    "box": {
+      "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      "constructorArgs": []
+    },
+    "governanceToken": {
+      "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    },
+    "timelock": {
+      "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "constructorArgs": [
+        3600,
+        [],
+        [],
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ]
+    },
+    "proposalId": {
+      "id": "5230289835011103672823903198228406806565753183275807746014809080855812650699"
+    },
+    "proposalValue": {
+      "value": "42"
+    }
+  },
+  "sepolia": {
+    "governor": {
+      "address": "0xfaaFfd91071E1F97fc669c9aA815972F224d10bF",
+      "constructorArgs": [
+        "0xfDc316600193DdfA09a906d592f5a45dD37e90aC",
+        "0x983C18ea2B6Cc139E2d1E1d93ba4892E0576C0D4"
+      ]
+    },
+    "box": {
+      "address": "0xaE3719980D24BCED036CB26744d7aC74e4D8D57b",
+      "constructorArgs": []
+    },
+    "governanceToken": {
+      "address": "0xfDc316600193DdfA09a906d592f5a45dD37e90aC"
+    },
+    "timelock": {
+      "address": "0x983C18ea2B6Cc139E2d1E1d93ba4892E0576C0D4",
+      "constructorArgs": [
+        3600,
+        [],
+        [],
+        "0x9652f953a1b67E0Af4b5Daf77C6bAF10948E2932"
+      ]
+    },
+    "proposalId": {
+      "id": "56132982427323122092464835205384636772815805233048669637471811010090173864031"
+    },
+    "proposalValue": {
+      "value": "22"
+    }
+  }
+}

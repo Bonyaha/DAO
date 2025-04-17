@@ -1,15 +1,32 @@
 const { ethers } = require("hardhat")
+const {addresses} = require("../addresses")
 
-const GOVERNOR_ADDRESS = "0xA64fFB0e4CF1F49ea2dbCE4C871FF8d39481D9FC"
-const PROPOSAL_ID = "13333668535660679219098534105939188806920359908433547209339039615474533999535"
+
 
 async function main() {
+	const networkName = network.name
+	console.log(`Running on network: ${networkName}\n`)
+
+	const config = addresses[network.name]
+	//console.log(config)
+	const GOVERNOR_ADDRESS = config.governor.address
+	const GOVERNANCE_TOKEN_ADDRESS = config.governanceToken.address
+	const PROPOSAL_ID = config.proposalId.id
+
+	const [proposer] = await ethers.getSigners()	
+
 	const proposalId = PROPOSAL_ID
 	if (!proposalId) {
 		throw new Error("Please set PROPOSAL_ID environment variable")
 	}
 
 	const governor = await ethers.getContractAt("MyGovernor", GOVERNOR_ADDRESS)
+	const governanceToken = await ethers.getContractAt("GovernanceToken", GOVERNANCE_TOKEN_ADDRESS)
+
+	const balance = await governanceToken.balanceOf(proposer.address)
+	const votes = await governanceToken.getVotes(proposer.address)
+	console.log("Current balance:", balance.toString())
+	console.log("Current votes:", votes.toString())
 
 	// Get proposal state
 	const state = await governor.state(proposalId)
@@ -24,22 +41,19 @@ async function main() {
 		7: "Executed"
 	}
 
-	console.log(`Proposal ${proposalId} state: ${stateMap[state]}`)
+	console.log(`\nProposal id: ${proposalId}`)
 
 	// Get proposal details
 	const snapshot = await governor.proposalSnapshot(proposalId)
 	const deadline = await governor.proposalDeadline(proposalId)
 	const { againstVotes, forVotes, abstainVotes } = await governor.proposalVotes(proposalId)
 
+	console.log(`Proposal state: ${stateMap[state]}`)
 	console.log(`Snapshot block: ${snapshot}`)
 	console.log(`Deadline block: ${deadline}`)
 	console.log(`Current block: ${await ethers.provider.getBlockNumber()}`)
 	console.log(`Votes - For: ${forVotes}, Against: ${againstVotes}, Abstain: ${abstainVotes}`)
 
-	// Calculate quorum
-	const quorum = await governor.quorum(snapshot)
-	console.log(`Quorum required: ${quorum}`)
-	console.log(`Total votes cast: ${BigInt(forVotes) + BigInt(againstVotes) + BigInt(abstainVotes)}`)
 }
 
 main()
