@@ -442,7 +442,7 @@ console.log('in delegateVotingPower');
 
 				{/* Action Buttons */}
 				<div className="bg-gradient-to-b from-slate-100 to-slate-300 p-4 mt-2 flex flex-col justify-center items-center gap-4 rounded-lg shadow-md w-full max-w-4xl">
-					<div className="flex justify-center items-center gap-4 overflow-x-auto">
+					<div className="flex justify-center items-center gap-4">
 					<button
 						onClick={handleGetCurrentValue}
 						disabled={isLoading}
