@@ -458,14 +458,16 @@ console.log('in delegateVotingPower');
 					>
 						{fundButtonText}
 					</button>
-					<button
-						onClick={delegateVotingPower}
-						disabled={combinedDelegateLoading || hasVotingPower || !hasClaimedTokens}
-						className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasVotingPower ? 'bg-gray-500 cursor-not-allowed' : !hasClaimedTokens ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
-              disabled:opacity-60 disabled:cursor-not-allowed shrink-0`}
-					>
-						{delegateButtonText}
-					</button>
+						{hasClaimedTokens && (
+							<button
+								onClick={delegateVotingPower}
+								disabled={combinedDelegateLoading || hasVotingPower}
+								className={`text-white font-medium px-4 py-2 rounded shadow-md transition duration-150 ease-in-out ${hasVotingPower ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+									} disabled:opacity-60 disabled:cursor-not-allowed shrink-0`}
+							>
+								{delegateButtonText}
+							</button>
+						)}
 
 					<button
 						onClick={handlePropose}
