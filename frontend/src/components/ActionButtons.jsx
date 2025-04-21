@@ -329,8 +329,7 @@ function ActionButtons() {
 			setIsClaimLoading(false)
 			setHasClaimedTokens(true)
 			// Prompt to add token to MetaMask after successful claim
-			addTokenToMetamask()
-			//refetchVotingPower?.()
+			addTokenToMetamask()			
 			// Automatically trigger delegation after successful claim
 			//delegateVotingPower()
 			refetchClaimedData()
@@ -394,22 +393,17 @@ function ActionButtons() {
 			} else if (latestProposal.state !== 0) { // Ensure it must be Pending (state 0)
 				const stateName = proposalStateNames[latestProposal.state] || `State ${latestProposal.state}`
 				setCancelTooltipText(`Proposal cannot be canceled (Status: ${stateName}). Must be Pending.`)
-			} else {
-				// This case might occur if other conditions disable it, though primarily it's state check
+			} else {				
 				setCancelTooltipText('Cancellation not possible currently.')
 			}
-		} else if (combinedCancelLoading) { // Use the combined loading state
+		} else if (combinedCancelLoading) {
 			setCancelTooltipText('Cancellation transaction in progress...')
 		}
 		else {
 			// Default text when cancellation is possible and not loading
 			setCancelTooltipText('Cancel the latest pending proposal.')
-		}
-		// Add latestProposal and combinedCancelLoading as dependencies
+		}		
 	}, [canCancelProposal, latestProposal, combinedCancelLoading, proposalStateNames])
-
-	//console.log(`cancelTooltipText: ${cancelTooltipText}`)
-	//console.log(`hasClaimedData: ${hasClaimedData}`)
 
 	return (
 		<>
@@ -477,8 +471,7 @@ function ActionButtons() {
 						PROPOSE
 					</button>
 					{/* Wrapper for Cancel Button and Tooltip */}
-						<div className="relative inline-block shrink-0"
-						// title attribute removed
+						<div className="relative inline-block shrink-0"						
 						onMouseEnter={() => setShowCancelTooltip(true)}
 						onMouseLeave={() => setShowCancelTooltip(false)}>
 						<button

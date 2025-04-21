@@ -12,7 +12,7 @@ export function useProposals({ publicClient, chain, governorAddress, address, cu
 	const proposalsRef = useRef([])
 	const [proposalError, setProposalError] = useState(null)
 
-	// Utility: Check if user has voted
+	// Check if user has voted
 	const hasUserVoted = useCallback(async (proposalId) => {
 		if (!address || !governorAddress || !publicClient) return false
 		try {

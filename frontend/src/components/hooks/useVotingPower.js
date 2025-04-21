@@ -7,7 +7,6 @@ import GovernanceToken from '../../artifacts/contracts/GovernanceToken.sol/Gover
 
 export function useVotingPower({ tokenAddress, address }) {
 	const [votingPower, setVotingPower] = useState(0)
-	//console.log('I am in useVotingPower');
 	
 	const { data: userVotingPower, error: fetchError, refetch } = useReadContract({
 		address: tokenAddress,

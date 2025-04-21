@@ -9,8 +9,7 @@ const ProposalTimingButton = ({ proposal, governorAddress }) => {
 	const [buttonStyle, setButtonStyle] = useState({})
 	const [tooltipText, setTooltipText] = useState('')
 	const [showTooltip, setShowTooltip] = useState(false)
-
-	// Use refs to track the last calculation time to avoid too frequent updates
+	
 	const lastCalculationTimeRef = useRef(0)
 
 	const { currentTime, currentBlock, blockTime, canExecuteProposal, proposals, errors } = useProposalContext()
