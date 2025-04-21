@@ -224,7 +224,6 @@ function ActionButtons() {
 			setShowError(true)
 			return
 		}
-console.log('in delegateVotingPower');
 
 		try {
 			setIsDelegating(true)
@@ -410,7 +409,7 @@ console.log('in delegateVotingPower');
 	}, [canCancelProposal, latestProposal, combinedCancelLoading, proposalStateNames])
 
 	//console.log(`cancelTooltipText: ${cancelTooltipText}`)
-	console.log(`hasClaimedData: ${hasClaimedData}`)
+	//console.log(`hasClaimedData: ${hasClaimedData}`)
 
 	return (
 		<>
